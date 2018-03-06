@@ -10,9 +10,9 @@ whisk_conditions_res    = parameters.whisk_conditions_res;  % resolution in ms f
 spontwin                = parameters.spontwin;              % window for spont spikes e.g. [0 200] ms
 
 trial_input_nr          = parameters.trial_channel;         % Which input channel has the trial TTL
-piezo_input_nr          = parameters.whisk_channel;         % Which input channel has the piezo / whisk TTL
+stim_input_nr           = parameters.whisk_channel;         % Which input channel has the stim / whisk TTL
 LED_input_nr            = parameters.LED_channel;           % Which input channel has the LED TTL
-switch_input_nr         = parameters.switch_channel;        % Which input channel switches between stimulators?
+switch_input_nr         = parameters.stim_switch_channel;  	% Which input channel switches between stimulators?
 q_override              = parameters.override_conds;        % Override TTL-based condition structure?
 n_conds                 = parameters.n_conds;               % Number of conditions if using override
 
@@ -60,14 +60,16 @@ cond_counters       = [];       % initialise counter per condition per channel;
 if q_digital_events % do we use digital events recorded by openephys? if so use 'all_channels.events' file
     [events timestamps info] = load_open_ephys_data([datafolder filesep filefolder filesep 'all_channels.events']);
     
-    % get events for trial, piezo, LED. input nr - 1 because of sensible
+    % get events for trial, stim, LED. input nr - 1 because of sensible
     % vs. programmer counting
     trial_starts    = timestamps(events == trial_input_nr - 1 & info.eventId == 1);
     trial_ends      = timestamps(events == trial_input_nr - 1 & info.eventId == 0);
-    piezo_starts  	= timestamps(events == piezo_input_nr - 1 & info.eventId == 1);
-    piezo_ends      = timestamps(events == piezo_input_nr - 1 & info.eventId == 0);
+    stim_starts  	= timestamps(events == stim_input_nr - 1 & info.eventId == 1);
+    stim_ends       = timestamps(events == stim_input_nr - 1 & info.eventId == 0);
     LED_starts      = timestamps(events == LED_input_nr - 1 & info.eventId == 1);
     LED_ends        = timestamps(events == LED_input_nr - 1 & info.eventId == 0);
+    switch_up       = timestamps(events == switch_input_nr - 1 & info.eventId == 1);
+    switch_down     = timestamps(events == switch_input_nr - 1 & info.eventId == 0);
     
     % some cleaning up 
     trial_starts(trial_starts > trial_ends(end))   = [];
@@ -76,32 +78,35 @@ if q_digital_events % do we use digital events recorded by openephys? if so use 
 else % events need to be extracted manually from the analog input signal. 
     
     if switch_input_nr ~= 0
-        trial_threshold     = 5/3;
-        stim_threshold      = (5/3) * 2;
-        LED_threshold       = 2.5;
-        switch_threshold    = 2.5; 
+        trial_threshold     = 5/3; % For trial, signal goes up to 2.5V
+        stim_threshold      = (5/3) * 2; % For whisking (always during trial), signal goes up to 5V
+        LED_threshold       = 2.5; % normal TTL logic - 0 to 5V
+        switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
     else
-        trial_threshold     = 2.5;
-        stim_threshold      = 2.5;
-        LED_threshold       = 2.5;
-        switch_threshold    = 2.5;
+        trial_threshold     = 2.5; % normal TTL logic - 0 to 5V
+        stim_threshold      = 2.5; % normal TTL logic - 0 to 5V
+        LED_threshold       = 2.5; % normal TTL logic - 0 to 5V
+        switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
     end
     
-    adc_file_nrs            = [trial_input_nr piezo_input_nr LED_input_nr switch_input_nr];
-    adc_file_thresholds     = [trial_threshold stim_threshold LED_threshold switch_threshold];
+    adc_channel_nrs        	= [trial_input_nr stim_input_nr LED_input_nr switch_input_nr];
+    adc_channel_thresholds 	= [trial_threshold stim_threshold LED_threshold switch_threshold];
     
     for a = 1:4 % loop through the analog input channels
-        disp(['Loading ADC input channel ' num2str(a)])
-        [thisTTL timestamps info] = load_open_ephys_data([datafolder filesep filefolder filesep data_prefix '_ADC' num2str(a) '.continuous']);
         
-        starttime       = min(timestamps); % find start time
-        timestamps      = (1:length(thisTTL)) / 30000; % manually create new timestamps at 30kHz, openephys sometimes suffers from timestamp wobble even though data acquisition is spot on
-        timestamps      = timestamps + starttime; % add start time to the newly created set of timestamps
+        if a == 1 || adc_channel_nrs(a) ~= adc_channel_nrs(a-1) % Don't reload data if trace is already loaded
+            disp(['Loading ADC input channel ' num2str(adc_channel_nrs(a))])
+            [thisTTL timestamps info] = load_open_ephys_data([datafolder filesep filefolder filesep data_prefix '_ADC' num2str(adc_channel_nrs(a)) '.continuous']);
+            
+            starttime       = min(timestamps); % find start time
+            timestamps      = (1:length(thisTTL)) / 30000; % manually create new timestamps at 30kHz, openephys sometimes suffers from timestamp wobble even though data acquisition is spot on
+            timestamps      = timestamps + starttime; % add start time to the newly created set of timestamps
+        end
         
-        thisTTL         = thisTTL > 2.5; % find where the TTL signal is 'high'
+        thisTTL_bool   	= thisTTL > adc_channel_thresholds(a); % find where the TTL signal is 'high'
         
-        start_inds      = find(diff(thisTTL) > 0.5); % find instances where the TTL goes from low to high
-        end_inds        = find(diff(thisTTL) < -0.5); % find instances where the TTL goes from high to low
+        start_inds      = find(diff(thisTTL_bool) > 0.5); % find instances where the TTL goes from low to high
+        end_inds        = find(diff(thisTTL_bool) < -0.5); % find instances where the TTL goes from high to low
         
         start_times 	= timestamps(start_inds); % find the timestamps of start events
         end_times    	= timestamps(end_inds); % find the timestamps of end events
@@ -109,16 +114,19 @@ else % events need to be extracted manually from the analog input signal.
         end_times(end_times < start_times(1))       = []; % discard potential initial end without start
         start_times(start_times > end_times(end))   = []; % discard potential final start without end
         
-        switch a % this determines what the start and end timestamps should be assigned to: trial/trial, LED/opto stim or piezo/whisk stim.
-            case trial_input_nr
-                trial_starts  = start_times;
-                trial_ends    = end_times;
-            case LED_input_nr
-                LED_starts      = start_times;
-                LED_ends        = end_times;
-            case piezo_input_nr
-                piezo_starts    = start_times;
-                piezo_ends      = end_times;
+        switch a % this determines what the start and end timestamps should be assigned to: trial/trial, LED/opto stim or stim/whisk stim.
+            case 1
+                trial_starts    = start_times(:);
+                trial_ends      = end_times(:);
+            case 2
+                stim_starts 	= start_times(:);
+                stim_ends     	= end_times(:);
+            case 3
+                LED_starts      = start_times(:);
+                LED_ends        = end_times(:);
+            case 4
+                switch_up       = start_times(:);
+                switch_down     = end_times(:);
         end
     end
 end
@@ -126,57 +134,58 @@ end
 % if we're using a morse signal to detect start and end of the protocol,
 % detect morse code for start and end of trials
 if qmorse
-    ep_lengths      = trial_ends - trial_starts;
-    morse_lengths   = round(ep_lengths * 10);
+    trial_lengths 	= trial_ends - trial_starts;
+    morse_lengths   = round(trial_lengths * 10);
     
     start_ind       = strfind(morse_lengths(:)',morse_start) + length(morse_start);
     end_ind         = strfind(morse_lengths(:)',morse_stop) - 1;
     
-    trial_starts  = trial_starts(start_ind:end_ind);
-    trial_ends    = trial_ends(start_ind:end_ind);
+    trial_starts    = trial_starts(start_ind:end_ind);
+    trial_ends      = trial_ends(start_ind:end_ind);
 end
 
 %% A lot of cleanup and repair from here
 
 % determine median trial length
-trial_times   = trial_ends - trial_starts;
-trial_length  = round(median(trial_times),1);
+trial_times     = trial_ends - trial_starts;
+trial_length    = round(median(trial_times),1);
 
 % all trials should have the same length; trials with anomalous
 % length are likely arduino startup floating voltage artefacts; get rid
 % of anomalies
-qtrial        = round(trial_times,1) == trial_length;
+qtrial          = round(trial_times,1) == trial_length;
 
-trial_starts  = trial_starts(qtrial);
-trial_ends    = trial_ends(qtrial);
+trial_starts    = trial_starts(qtrial);
+trial_ends      = trial_ends(qtrial);
 
-total_length    = round(median(diff(trial_starts)),1);
+total_length 	= round(median(diff(trial_starts)),1);
 
 % Correct for odd TTL pulses
-ep_start    = min(trial_starts(:));
-ep_end      = max(trial_ends(:));
+trial_start     = min(trial_starts(:));
+trial_end       = max(trial_ends(:));
 
 % ensure we only look for events happening during trials;
 % make sure all starts have matching ends and  vice versa
-LED_starts(LED_starts < ep_start)               = [];
-LED_ends(LED_ends < ep_start)                   = [];
+LED_starts(LED_starts < trial_start)     	= [];
+LED_ends(LED_ends < trial_start)           	= [];
 
-piezo_starts(piezo_starts < ep_start)           = [];
-piezo_ends(piezo_ends < ep_start)               = [];
+stim_starts(stim_starts < trial_start)    	= [];
+stim_ends(stim_ends < trial_start)        	= [];
 
-LED_starts(LED_starts > ep_end)                 = [];
-LED_ends(LED_ends > ep_end)                     = [];
+LED_starts(LED_starts > trial_end)        	= [];
+LED_ends(LED_ends > trial_end)           	= [];
 
-piezo_starts(piezo_starts > ep_end)             = [];
-piezo_ends(piezo_ends > ep_end)                 = [];
+stim_starts(stim_starts > trial_end)       	= [];
+stim_ends(stim_ends > trial_end)          	= [];
 
-piezo_starts(piezo_starts > max(piezo_ends))    = [];
-piezo_ends(piezo_ends < min(piezo_starts))      = [];
+stim_starts(stim_starts > max(stim_ends))	= [];
+stim_ends(stim_ends < min(stim_starts))   	= [];
+
 
 % more cleaning up; assuming similar trial durations, see if there are any
 % exceptionally long or short trials at the start or end (can happen
 % because of floating voltages on the arduino pins)
-qtrial2       = round(diff(trial_starts),1) == total_length; % compare 
+qtrial2         = round(diff(trial_starts),1) == total_length; % compare 
 anomalind       = find(~qtrial2); % indices of anomalous lengths
 
 anomalearly    	= anomalind(anomalind < (.5 * length(trial_starts))); % find which anomalous indices are happenig early on in the trial sequence
@@ -186,12 +195,12 @@ anomalate       = anomalate + 1;
 
 anomalous       = [anomalearly(:); anomalate(:)];
 
-trial_starts(anomalous)   = []; % remove anomalous trial starts
-trial_ends(anomalous)     = []; % remove anomalous trial ends
+trial_starts(anomalous)     = []; % remove anomalous trial starts
+trial_ends(anomalous)       = []; % remove anomalous trial ends
 
 % 
-allwhisks                   = piezo_starts;
-allwhisk_ends               = piezo_ends;
+allwhisks                   = stim_starts;
+allwhisk_ends               = stim_ends;
 
 %% work out the velocity (length) of a whisk, and the frequency:
 
@@ -312,7 +321,14 @@ switch expt_type % for each experiment, make sure not to split conditions by oth
         whisk_lengths         	= repmat(median_whisk_length,size(whisk_lengths));
 end
 
+
 %% Done with clean-up and event extraction; now determine the different conditions
+
+% Which stimulator was used?
+
+stim_nr                     = ones(size(trial_starts)); % initialise stimulator nr to '1' for all trials
+[vals,up_stim_trials,ib]    = intersect(trial_starts, switch_up); % find instances of the stim switch going up at the same time as trial starts - those are the trials where stimulator 2 is being used
+stim_nr(up_stim_trials)     = 2; % set those instances to stimulator 2
 
 % recover LED delays
 LED_delays      = round((LED_starts(:) - trial_starts(:)) / LED_conditions_res,3) * LED_conditions_res;
@@ -325,7 +341,7 @@ LED_ontimes     = LED_ends - LED_starts;
 LED_durations   = round(LED_ontimes(:) / 10,3) * 10;
 
 % reconstruct trial matrix
-trial_timings   = [LED_delays(:) whisk_delays(:) LED_durations(:) whisk_freqs(:) round(1./whisk_lengths(:))];
+trial_timings   = [LED_delays(:) whisk_delays(:) LED_durations(:) whisk_freqs(:) round(1./whisk_lengths(:)) stim_nr(:)];
 
 % extract different conditions from trial matrix
 [conditions, cond_inds, cond_vect]   = unique(trial_timings,'rows');
@@ -352,7 +368,7 @@ end
 [filt_b,filt_a]           = butter(2, [300 6000]/(30000/2));
 
 if qspike_detection % 'manual' spike detection in matlab
-    trace_data = [];
+
     for a = 1:n_channels
         disp(['Loading channel ' num2str(a)]);
         [thistrace timestamps info] = load_open_ephys_data([datafolder filesep filefolder filesep data_prefix '_CH' num2str(get_channels(a)) '.continuous']);
@@ -364,8 +380,6 @@ if qspike_detection % 'manual' spike detection in matlab
         % Do simple homebrew spike detection by 1) filtering with bandpass, 2) smoothing and 3) thresholding
         thistrace           = filter(filt_b,filt_a,thistrace); % filter data with butterworth bandpass filter to get spike traces
         thistrace           = smooth(thistrace, spike_smoothwin); % smooth data with
-        
-        trace_data(a,1:length(thistrace))   = thistrace;
         
         q_threshold         = thistrace > (spike_thresh * std(thistrace)); % determine standard deviation to determine threshold
         spike_bool          = diff(q_threshold) == 1; % Determine instances of threshold being crossed 
