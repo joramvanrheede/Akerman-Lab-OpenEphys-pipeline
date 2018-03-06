@@ -7,10 +7,10 @@ data_folder         = '/Volumes/Akermanlab-1/Joram/In vivo mouse data'; % Where 
 
 save_folder         = '/Volumes/Akermanlab-1/Joram/Extracted data'; % Where to save output?
 
-start_date          = '2018_02_07'; % format: 'yyyy_mm_dd'; Process files from this date onwards
+start_date          = '2018_03_05'; % format: 'yyyy_mm_dd'; Process files from this date onwards
 end_date            = '2019_10_10'; % format: 'yyyy_mm_dd'; Process files up until this date
 
-process_expts       = {'Frequency'}; % indicate which experiment types to run, e.g.: {'Drive', 'Timing'}, or use {'All'}
+process_expts       = {'All'}; % indicate which experiment types to run, e.g.: {'Drive', 'Timing'}, or use {'All'}
 
 %% global analysis parameters
 
@@ -55,6 +55,7 @@ whisk_col       = find(strcmpi('Whiskers',headers)); % Which whiskers are being 
 trialTTL_col    = find(strcmpi('TrialTTL',headers)); % Which TTL channel has info about trials
 whiskTTL_col    = find(strcmpi('WhiskTTL',headers)); % Which TTL channel has info about whisker stimulation
 LEDTTL_col      = find(strcmpi('LEDTTL',headers)); % Which TTL channel has info about LED on/off
+switchTTL_col   = find(strcmpi('Stim_switch_TTL',headers)); % Which TTL channel is used for switching stimulators?
 
 override_col    = find(strcmpi('Override conditions',headers)); % If some event TTLs are broken, you can use override col to impose a nr. of conditions. only works if condition order is not randomised.
 n_cond_col      = find(strcmpi('Number of conditions',headers)); % If overriding the TTL conditions, 
@@ -129,7 +130,8 @@ for a = 1:size(metadata,1)
     parameters.trial_channel      	= metadata{a,trialTTL_col};         % Which input channel has the episode TTL
     parameters.whisk_channel     	= metadata{a,whiskTTL_col};         % Which input channel has the piezo / whisk TTL
     parameters.LED_channel          = metadata{a,LEDTTL_col};           % Which input channel has the LED TTL    
-    parameters.experiment_type      = metadata{a,expt_col};
+    parameters.stim_switch_channel  = metadata{a,switchTTL_col};        % Which input channel has the stimulator switch TTL
+    parameters.experiment_type      = metadata{a,expt_col};             % What type of experiment is this?
     
     parameters.override_conds       = metadata{a,override_col};
     parameters.n_conds              = metadata{a,n_cond_col};
