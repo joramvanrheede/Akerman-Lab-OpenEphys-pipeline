@@ -11,7 +11,9 @@
 % 
 
 % location of preprocessed files
-sdata_folder    = '/Users/Joram/Dropbox/Akerman Postdoc/Data/Extracted data 2018_02_07/16_02_Frequency';
+sdata_folder    = '/Users/Joram/Dropbox/Akerman Postdoc/Data/Extracted data/DualStim freq';% '/Users/Joram/Dropbox/Akerman Postdoc/Data/Extracted data 2018_02_07/Dual stim test';
+
+add_all_spikes  = 0; % add all_spikes field to each experiment? this leads to large variable size (on the scale of 1GB per experiment) so is only feasible when dealing with few experiments
 
 %% Script parameters
 
@@ -20,9 +22,9 @@ whisk_resp_threshold          	= 1.5; % response threshold in x increase from ba
 LED_resp_threshold              = 1.5; % response threshold in x increase from baseline/spontaneous (i.e. 2 = 2x spontaneous rate)
 
 % Parameters for analyse_sdata_function
-analysisparams.whiskwinedges    = [-0.5:0.001:12]; % in seconds
-analysisparams.LEDwin           = [0.005 0.030]; % in seconds
-analysisparams.whiskwin         = [0 0.040]; % in seconds
+analysisparams.whiskwinedges    = [-5:0.001:5]; % in seconds
+analysisparams.LEDwin           = [0.002 0.019]; % in seconds
+analysisparams.whiskwin         = [0 0.050]; % in seconds
 analysisparams.LED_sust_win     = [0.100 0.400]; % in seconds
 analysisparams.LEDwinedges      = [-0.250:0.005:0.750]; % in seconds
 analysisparams.samplerate       = 30000; % in Hz
@@ -30,27 +32,22 @@ analysisparams.profile_smoothing = [0.03]; % size of gaussian window (in seconds
 
 %% Running code starts here
 
-date_folders = dir(sdata_folder);   % Get list of folders corresponding to the dates of experiments
-date_folders = date_folders(3:end); % Get rid of '.' and '..' folders
-
+date_folders            = dir(sdata_folder);   % Get list of folders corresponding to the dates of experiments
+date_folders            = date_folders([date_folders.isdir]);
+qremove                 = ismember({date_folders.name},{'.','..'});
+date_folders(qremove)   = [];
 % initialise 'sdata' struct
 sdata	= [];
 for a = 1:length(date_folders)
     
     % go to date folder and get file list
-    this_date_folder    = date_folders(a).name;
-    sdata_files         = dir([sdata_folder filesep this_date_folder]);
+    this_date_folder        = date_folders(a).name;
+    sdata_files             = dir([sdata_folder filesep this_date_folder]);
+    sdata_files             = sdata_files(~[sdata_files.isdir]); % only look at files, not folders
+    qremove                 = ismember({sdata_files.name},{'.DS_Store'}); % get rid of annoying  '.DS_store' files
+    sdata_files(qremove)    = [];
+    file_names              = {sdata_files.name}; % get file names
     
-    % get rid of '.' and '..' directories
-    sdata_files         = sdata_files(3:end);
-    
-    % get file names
-    file_names          = {sdata_files.name};
-    
-    % Get rid of annoying '.DS_store' files that pop up everywhere
-    if any(strcmp(file_names,'.DS_Store'))
-        sdata_files     = sdata_files(~strcmp(file_names,'.DS_Store'));
-    end
     
     % loop over data files
     for b = 1:length(sdata_files)
@@ -73,14 +70,13 @@ for a = 1:length(date_folders)
         
         %% Start analysis by channel
         
-        for c = 1:length(select_channels)
-            this_channel                            = select_channels(c);
+        for c = 1:length(channels)
             
             % store current channel in temporary variable
-            temp_channel                            = channels(this_channel).conditions;
+            temp_channel                            = channels(c).conditions;
             
             % store spontaneous rate of this channel in sdata.expt struct
-            sdata(a).expt(b).spont_rate(c)         	= channels(this_channel).spontspikerate;
+            sdata(a).expt(b).spont_rate(c)         	= channels(c).spontspikerate;
             
             % transfer all PSTH type data to the sdata.expt struct
             sdata(a).expt(b).whiskwinedges          = analysisparams.whiskwinedges;
@@ -123,23 +119,25 @@ for a = 1:length(date_folders)
             % make big matrix of spike times to facilitate further analysis
             % down the line (rasterplots etc):
             
-            % loop over conditions
-            for d = 1:length(temp_channel)
-                temp_cond       = temp_channel(d);
-                
-                % loop over episodes
-                for e = 1:length(temp_cond.episodes)
+            if add_all_spikes
+                % loop over conditions
+                for d = 1:length(temp_channel)
+                    temp_cond       = temp_channel(d);
                     
-                    % put all spike data for this experiment in one big
-                    % matrix of spike times
-                    sdata(a).expt(b).all_spikes(d,c,e,1:length(temp_cond.episodes(e).spikes)) = temp_cond.episodes(e).spikes;
+                    % loop over episodes
+                    for e = 1:length(temp_cond.episodes)
+                        
+                        % put all spike data for this experiment in one big
+                        % matrix of spike times
+                        sdata(a).expt(b).all_spikes(d,c,e,1:length(temp_cond.episodes(e).spikes)) = temp_cond.episodes(e).spikes;
+                    end
                 end
+                
+                % the matrix will have lots of empty points, by default these
+                % become zeros. Turn any value that is exactly zero into a NaN.
+                sdata(a).expt(b).all_spikes(sdata(a).expt(b).all_spikes == 0)  = NaN;
             end
-            
-            % the matrix will have lots of empty points, by default these
-            % become zeros. Turn any value that is exactly zero into a NaN.
-            sdata(a).expt(b).all_spikes(sdata(a).expt(b).all_spikes == 0)  = NaN;
-            
         end
+        sdata(a).expt(b).whisk_profile          = sdata(a).expt(b).whisk_profile(:,:,1:30:end);
     end
 end
