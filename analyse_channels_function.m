@@ -168,7 +168,7 @@ for a = 1:length(channels)
         
         channels(a).conditions(b).LED_sust_spike_count 	= LED_sust_count;
         channels(a).conditions(b).LED_sust_spike_rate  	= (LED_sust_count ./ LED_sust_winsize') / n_episodes;
-        channels(a).conditions(b).LED_sust_spike_rel   	= channels(a).conditions(b).LED_spike_rate / mean(channels(a).spontspikerate);
+        channels(a).conditions(b).LED_sust_spike_rel   	= channels(a).conditions(b).LED_sust_spike_rate / mean(channels(a).spontspikerate);
         
         
         %% LED
