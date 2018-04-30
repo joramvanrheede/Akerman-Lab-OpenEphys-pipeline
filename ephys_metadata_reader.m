@@ -3,11 +3,11 @@
 
 metadata_file       = '/Users/Joram/Dropbox/Akerman Postdoc/Data/in vivo metadata/Metadata File.xlsx'; % Which metadata file to use?
 
-data_folder         = '/Volumes/Akermanlab-1/Joram/In vivo mouse data'; % Where are the data? 
+data_folder         = '/Users/Joram/Documents/In vivo data'%'/Volumes/Akermanlab-1/Joram/In vivo mouse data'; % Where are the data? 
 
-save_folder         = '/Volumes/Akermanlab-1/Joram/Extracted data'; % Where to save output?
+save_folder         = '/Users/Joram/Documents/Extracted data'%'/Volumes/Akermanlab-1/Joram/Extracted data'; % Where to save output?
 
-start_date          = '2018_03_05'; % format: 'yyyy_mm_dd'; Process files from this date onwards
+start_date          = '2018_04_23'; % format: 'yyyy_mm_dd'; Process files from this date onwards
 end_date            = '2019_10_10'; % format: 'yyyy_mm_dd'; Process files up until this date
 
 process_expts       = {'All'}; % indicate which experiment types to run, e.g.: {'Drive', 'Timing'}, or use {'All'}
@@ -15,7 +15,6 @@ process_expts       = {'All'}; % indicate which experiment types to run, e.g.: {
 %% global analysis parameters
 
 q_spike_detection   = 1;      % do spike detection, or use detected spikes from openephys?
-
 
 %% running code starts here
 

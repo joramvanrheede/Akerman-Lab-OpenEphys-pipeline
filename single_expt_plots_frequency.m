@@ -2,7 +2,7 @@
 
 close all
 
-experiment          = sdata(9).expt(1);
+experiment          = sdata(11).expt(1);
 
 summarise_channels  = [1:16]; % include these channels
 split_conditions    = [1 4 6]; % split by these conditions, summarise over others
@@ -55,7 +55,7 @@ for a = 1:size(split_cond_rows,1)
     set(gca,'LineWidth',2,'FontName','Garamond','FontSize',16)
     
     xlim([-1 4.5])
-    ylim([0 10])
+    ylim([0 250])
     
     
     profile_plots(a).stim_times     = stim_times;

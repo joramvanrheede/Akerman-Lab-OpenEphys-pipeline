@@ -303,8 +303,8 @@ end
 allwhisks(isnan(allwhisks))             = [];
 whisk_freqs(isnan(whisk_freqs))         = [];
 whisk_lengths(isnan(whisk_lengths))     = [];
-trial_starts(isnan(trial_starts))   = [];
-trial_ends(isnan(trial_ends))       = [];
+trial_starts(isnan(trial_starts))       = [];
+trial_ends(isnan(trial_ends))           = [];
 LED_starts(isnan(LED_starts))           = [];
 LED_ends(isnan(LED_ends))               = [];
 
@@ -313,6 +313,10 @@ switch expt_type % for each experiment, make sure not to split conditions by oth
         median_whisk_length     = nanmedian(whisk_lengths);
         whisk_lengths          	= repmat(median_whisk_length,size(whisk_lengths));
     case 'Velocity'
+        binvec          = [0:0.0001:2];
+        [pks, locs]     = findpeaks(smooth(histc(whisk_lengths,binvec),3),'MinPeakHeight',3);
+        length_vals     = binvec(locs);
+        whisk_lengths   = interp1(length_vals,length_vals,whisk_lengths,'nearest','extrap');
     case 'Drive'
         median_whisk_length     = nanmedian(whisk_lengths);
         whisk_lengths         	= repmat(median_whisk_length,size(whisk_lengths));
@@ -338,7 +342,7 @@ whisk_delays    = round((allwhisks(:) - trial_starts(:)) / whisk_conditions_res,
 
 % recover LED durations
 LED_ontimes     = LED_ends - LED_starts;
-LED_durations   = round(LED_ontimes(:) / 10,3) * 10;
+LED_durations   = round(LED_ontimes(:) / 5,3) * 5;
 
 % reconstruct trial matrix
 trial_timings   = [LED_delays(:) whisk_delays(:) LED_durations(:) whisk_freqs(:) round(1./whisk_lengths(:)) stim_nr(:)];

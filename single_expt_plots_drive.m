@@ -2,9 +2,9 @@
 
 close all
 
-experiment          = sdata(2).expt;
+experiment          = sdata(5).expt;
 
-summarise_channels  = [11:16]; % include these channels
+summarise_channels  = [1:16]; % include these channels
 split_conditions    = [1 5 6]; % split by these conditions, summarise over others
 
 split_plots         = [5 6]; % [4 6] works
@@ -75,6 +75,7 @@ for a  = unique(cond_inds)'
     contrast_times  = [contrast_times; mean(mean(experiment.whisk_peak_time(cond_inds == a,summarise_channels)))];
 end
 
+% Find out which whisker is principal and which is adjacent
 if contrast_rates(3) > contrast_rates(4)
     P_whisk_stim = 1;
     A_whisk_stim = 2;
@@ -97,10 +98,12 @@ A_LED_onoff_ratio 	= A_rate_LED_on / A_rate_LED_off;
 %% 
 figure
 bar_handle  = bar([P_rate_LED_on P_rate_LED_off; A_rate_LED_on A_rate_LED_off],'LineWidth',2);
+legend(bar_handle,'LED on','LED off')
 set(gca,'LineWidth',2,'FontName','Garamond','FontSize',16)
 ylim([0 1000])
 title('Response size, P vs. A whisker, LED ON vs. OFF')
 ylabel('Stimulus-evoked instantaneous firing rate')
+xlabel('1 = Principal, 2 = Adjacent')
 
 if save_figs
     print(gcf,[experiment_plot_folder filesep ' Bar graph P vs A - chan ' num2str(summarise_channels(1)) '-' num2str(summarise_channels(end))],'-dpng','-r300')

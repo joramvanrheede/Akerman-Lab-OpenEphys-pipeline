@@ -5,7 +5,7 @@
 save_folder         = '/Users/Joram/Dropbox/Akerman Postdoc/Figures/Matlab output';
 save_figs        	= true;
 
-summarise_channels  = [11:16]; % include these channels
+summarise_channels  = [1:16]; % include these channels
 
 %% Set for this type of experiment
 split_conditions    = [1 5 6]; % split by these conditions, summarise over others
@@ -70,10 +70,21 @@ for i = 1:length(sdata)
 end
 
 P_rate_LED_on
-pairedlineplot(P_rate_LED_off,P_rate_LED_on,{'LED OFF' 'LED ON'},'Principal whisker firing rate','Opto condition')
-pairedlineplot(A_rate_LED_off,A_rate_LED_on,{'LED OFF' 'LED ON'},'Adjacent whisker firing rate','Opto condition')
-pairedlineplot(PA_ratio_LED_off,PA_ratio_LED_on,{'LED OFF' 'LED ON'},'Principal/Adjacent ratio','Opto condition')
-%pairedlineplot(P_LED_onoff_ratio,A_LED_onoff_ratio,{'LED OFF' 'LED ON'},'Principal/Adjacent ratio','Opto condition')
+figure
+set(gcf,'Units','normalized')
+set(gcf,'Position',[0 .6 1 .4])
+subplot(1,3,1)
+pairedlineplot(P_rate_LED_off,P_rate_LED_on,{'LED OFF' 'LED ON'},'Opto condition','Principal whisker firing rate')
+title('Principal whisker firing rate')
+subplot(1,3,2)
+pairedlineplot(A_rate_LED_off,A_rate_LED_on,{'LED OFF' 'LED ON'},'Opto condition','Adjacent whisker firing rate')
+title('Adjacent whisker firing rate')
+subplot(1,3,3)
+pairedlineplot(PA_ratio_LED_off,PA_ratio_LED_on,{'LED OFF' 'LED ON'},'Opto condition','Principal/Adjacent ratio')
+title('Principal/Adjacent ratio')
 
+figure
+pairedlineplot(P_LED_onoff_ratio,A_LED_onoff_ratio,{'Principal' 'Adjacent'},'Whisker','LED ON / OFF ratio')
+title('LED ON/OFF ratio')
 
 
