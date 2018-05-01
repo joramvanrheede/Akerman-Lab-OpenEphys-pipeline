@@ -13,8 +13,6 @@
 % location of preprocessed files
 sdata_folder    = '/Users/Joram/Dropbox/Akerman Postdoc/Data/Extracted data/Dual Stim/Frequency'; % '/Users/Joram/Dropbox/Akerman Postdoc/Data/Extracted data 2018_02_07/Dual stim test';
 
-add_all_spikes  = 0; % add all_spikes field to each experiment? this leads to large variable size (on the scale of 1GB per experiment) so is only feasible when dealing with few experiments
-
 % Plot principal vs. adjacent difference signal (P-A) somewhere?
 % Build in check for channels having evenly distributed nr of conditions /
 % multiples of the same amount
@@ -52,14 +50,15 @@ for a = 1:length(date_folders)
     sdata_files(qremove)    = [];
     file_names              = {sdata_files.name}; % get file names
     
-    
     % loop over data files
     for b = 1:length(sdata_files)
         this_sdata_file = sdata_files(b).name;
         
-        % loads 'channels' and 'parameters' from saved data
-        load([sdata_folder filesep this_date_folder filesep this_sdata_file])        
-        disp([sdata_folder filesep this_date_folder filesep this_sdata_file])
+        full_channels_file      = [sdata_folder filesep this_date_folder filesep this_sdata_file];
+        
+        % load 'channels' and 'parameters' from saved data
+        load(full_channels_file)        
+        disp(['Loaded ' full_channels_file '...'])
         
         % Use analyse_channels_function to add PSTH data to 'channels'
         % struct
@@ -69,7 +68,7 @@ for a = 1:length(date_folders)
         condition_mat    	= cell2mat({channels(1).conditions.timings}');
         
         % store filename and the matrix of conditions in sdata.expt struct
-        sdata(a).expt(b).filename                 	= this_sdata_file;
+        sdata(a).expt(b).filename                 	= full_channels_file;
         sdata(a).expt(b).condition_mat             	= condition_mat;
         
         %% Start analysis by channel
@@ -120,27 +119,6 @@ for a = 1:length(date_folders)
             sdata(a).expt(b).whisk_resp(:,c)        = [temp_channel.whisk_spike_rel]' > whisk_resp_threshold;
             sdata(a).expt(b).LED_resp(:,c)          = [temp_channel.LED_spike_rel]' > LED_resp_threshold;
             
-            % make big matrix of spike times to facilitate further analysis
-            % down the line (rasterplots etc):
-            
-            if add_all_spikes
-                % loop over conditions
-                for d = 1:length(temp_channel)
-                    temp_cond       = temp_channel(d);
-                    
-                    % loop over episodes
-                    for e = 1:length(temp_cond.episodes)
-                        
-                        % put all spike data for this experiment in one big
-                        % matrix of spike times
-                        sdata(a).expt(b).all_spikes(d,c,e,1:length(temp_cond.episodes(e).spikes)) = temp_cond.episodes(e).spikes;
-                    end
-                end
-                
-                % the matrix will have lots of empty points, by default these
-                % become zeros. Turn any value that is exactly zero into a NaN.
-                sdata(a).expt(b).all_spikes(sdata(a).expt(b).all_spikes == 0)  = NaN;
-            end
         end
         sdata(a).expt(b).whisk_profile          = sdata(a).expt(b).whisk_profile(:,:,1:30:end);
     end
