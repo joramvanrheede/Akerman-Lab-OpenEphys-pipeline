@@ -10,27 +10,44 @@
 % Loops through a target folder for a particular experiment type (e.g. 'Frequency')
 % 
 
+experiment_type     = 'Frequency';
+experiment_folder   = '/Users/Joram/Dropbox/Akerman Postdoc/Data/Extracted data/Dual Stim';
+
 % location of preprocessed files
-sdata_folder    = '/Users/Joram/Dropbox/Akerman Postdoc/Data/Extracted data/Dual Stim/Frequency'; % '/Users/Joram/Dropbox/Akerman Postdoc/Data/Extracted data 2018_02_07/Dual stim test';
-
-% Plot principal vs. adjacent difference signal (P-A) somewhere?
-% Build in check for channels having evenly distributed nr of conditions /
-% multiples of the same amount
-
-%% Script parameters
+sdata_folder        = [experiment_folder filesep experiment_type]; % '/Users/Joram/Dropbox/Akerman Postdoc/Data/Extracted data 2018_02_07/Dual stim test';
 
 % responsiveness criteria
 whisk_resp_threshold                = 1.5; % response threshold in x increase from baseline/spontaneous (i.e. 2 = 2x spontaneous rate)
 LED_resp_threshold                  = 1.5; % response threshold in x increase from baseline/spontaneous (i.e. 2 = 2x spontaneous rate)
 
-% Parameters for analyse_sdata_function
-analysisparams.whiskwinedges        = [-1:0.001:5]; % in seconds
-analysisparams.LEDwin               = [0.002 0.040]; % in seconds
-analysisparams.whiskwin             = [0 0.040]; % in seconds
-analysisparams.LED_sust_win         = [0.500 1.000]; % in seconds
-analysisparams.LEDwinedges          = [-0.250:0.001:5.250]; % in seconds
-analysisparams.samplerate           = 30000; % in Hz
-analysisparams.profile_smoothing    = [0.02]; % size of gaussian window (in seconds) (span covers -3xSD to + 3xSD)
+%% Script parameters
+
+% set general parameters for use in analyse_channels_function
+analysisparams.samplerate           = 30000;            % data sample rate in Hz
+analysisparams.profile_smoothing    = [0.02];           % size of gaussian window (in seconds) (span covers -3xSD to + 3xSD)
+
+analysisparams.whiskwin             = [0 0.040];        % window for assessing LED response
+analysisparams.whiskwinedges        = [-1:0.001:3];     % histogram bin edges for whisker PSTH
+
+analysisparams.LEDwin               = [0.002 0.040];    % in seconds
+analysisparams.LED_sust_win         = [1 2]; % in seconds
+analysisparams.LEDwinedges          = [-0.250:0.001:3]; % in seconds
+
+% adjust individual parameters dependent on experiment_type
+switch experiment_type
+    case 'Frequency'
+        analysisparams.LED_sust_win         = [1 4];            % LED is on for longer, can take larger sample
+        analysisparams.whiskwinedges        = [-1:0.001:5];     % multiple whisks - needs PSTH with more time bins
+        analysisparams.LEDwinedges          = [-0.5:0.001:6];   % Longer LED stimulation needs PSTH with more time bins
+    case 'Drive'
+        % no adjustments needed from general settings?
+    case 'Timing'
+        analysisparams.LEDwin               = [0.002 0.025];    % LED pulse only lasts 25ms
+        analysisparams.LED_sust_win         = [0.002 0.025];    % no real sustained response here
+        analysisparams.LEDwinedges          = [-0.5:0.001:2];   % shorten PSTH
+    case 'Velocity'
+        analysisparams.whiskwin             = [0 1];            % slow whisks need longer time bin to capture peak response
+end
 
 %% Running code starts here
 

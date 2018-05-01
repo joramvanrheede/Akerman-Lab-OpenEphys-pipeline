@@ -6,8 +6,13 @@ experiment          = sdata(11).expt(1);
 
 summarise_channels  = [1:16]; % include these channels
 split_conditions    = [1 4 6]; % split by these conditions, summarise over others
-
 split_plots         = [4 6]; % [4 6] works
+
+% for rasterplots:
+split_raster_plots  = [4 1];
+split_figures       = [6];
+trialrange          = [1 10]; % [min max] - don't exceed max nr of trials; else errors result.
+
 
 save_folder         = '/Users/Joram/Dropbox/Akerman Postdoc/Figures/Matlab output';
 save_figs        	= false;
@@ -55,7 +60,7 @@ for a = 1:size(split_cond_rows,1)
     set(gca,'LineWidth',2,'FontName','Garamond','FontSize',16)
     
     xlim([-1 4.5])
-    ylim([0 250])
+    ylim([0 10])
     
     
     profile_plots(a).stim_times     = stim_times;
@@ -110,6 +115,10 @@ if save_figs
     end
     print(gcf,[experiment_plot_folder filesep ' PSTH plot - chan ' num2str(summarise_channels(1)) '-' num2str(summarise_channels(end))],'-dpng','-r300')
 end
+
+%% rasterplots
+
+channels_to_rasterplots(experiment.filename,summarise_channels,split_raster_plots,split_figures,trialrange,x_ax_lims)
 
 
 %% Look at peak instantaneous firing rate between LED and no LED
