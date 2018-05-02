@@ -139,7 +139,8 @@ title(gca,'Stimulator 2')
 % save figure
 figure(1)
 if save_figs
-    experiment_plot_folder      = [save_folder filesep experiment.filename(1:end-4)];
+    fileseps = regexp(experiment.filename,'/.');
+    experiment_plot_folder      = [save_folder filesep experiment.filename((fileseps(end)+1):end-4)];
     if ~isdir(experiment_plot_folder)
         mkdir(experiment_plot_folder)
     end
