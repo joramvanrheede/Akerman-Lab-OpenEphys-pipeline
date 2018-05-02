@@ -13,23 +13,27 @@
 % Make some metrics: first/fourth stim ratio, first vs 3 secs ratio
 %
 
-
 save_folder         = '/Users/Joram/Dropbox/Akerman Postdoc/Figures/Matlab output';
-save_expt_name      = 'Frequency 20180417';
+save_expt_name      = 'Frequency multi 20180502';
 save_figs        	= false;
 
 summarise_channels  = [1:16]; % include these channels
-LEDresp_threshold   = 1.5;
 
-q_check_LED_resp    = true;
+% apply threshold for LED responsiveness?
+q_check_LED_resp    = true; % 
+LEDresp_threshold   = 1.5;  % threshold relative to spontaneous
+
+% response window for assessing whisk response to stimuli for purpose of
+% comparison of 1st, 2nd, 3rd, last...
+respwinsize         = 0.04;
 
 % Zoomed in values for visualising instantaneous LED response
 z_LED_tmin          = -.01;
 z_LED_tmax          = .2;
 
 %% Set for this type of experiment
-split_conditions    = [1 5 6]; % split by these conditions, summarise over others
-split_plots         = [5 6]; % [4 6] works
+split_conditions    = [1 6]; % split by these conditions, summarise over others
+split_plots         = [6]; % [4 6] works
 
 %%
 close all
@@ -47,29 +51,59 @@ P_pktime_LED_off	= [];
 A_pktime_LED_on     = [];
 A_pktime_LED_off	= [];
 LED_rel_mean        = [];
-LED_sust_rel_mean   = [];
-LED_OFF_rel_mean    = [];
-LED_rel_traces      = [];
+LED_sust_mean       = [];
+LED_OFF_mean       	= [];
+LED_rate_traces   	= [];
 LED_win_edges       = [];
 counter             = 0;
 LEDresp           	= [];
 for i = 1:length(sdata)
-    experiment          = sdata(i).expt;
+    experiment              = sdata(i).expt;
     
     for j = 1:length(experiment)
+
         counter             = counter+1;
         
         condition_mat       = experiment(j).condition_mat;
         
-        split_cond_mat      = condition_mat(:,split_conditions);
-        [split_cond_rows, indxa, cond_inds] = unique(split_cond_mat,'rows');
+        for k = 1:size(condition_mat,1)
+            
+            these_conds         = condition_mat(a,:);
+            
+            this_LED_delay      = these_conds(1);
+            this_frequency      = these_conds(4);
+            this_stim           = these_conds(6);
+            
+            stim_times          = [0:1/round(this_frequency):5.5]; % recreate stimulus times from frequency
+            
+            resp_peaks          = [];
+            for l = 1:length(stim_times)
+                
+                % determine response assessment window for this stimulus time
+                qstimwin            = experiment(j).whiskwinedges > stim_times(l) & experiment(j).whiskwinedges < (stim_times(l) + respwinsize);
+                
+                % get segment of whisk_profile to determine max instantaneous rate of fire in this window
+                profile_segment     = squeeze(mean(mean(experiment(j).whisk_profile(k,summarise_channels,qstimwin),1),2)); 
+                
+                % if we've requested data beyond whisker profile, use NaN
+                % rather than empty values
+                if isempty(profile_segment)
+                    profile_segment = NaN;
+                end
+                
+                % find max instantaneous ROF
+                resp_peaks(l)  = max(profile_segment);
+            end
+            
+            first_stim_times    = [stim_times(1:4)];
+            first_resp_peaks    = [resp_peaks(1:4)];
+            
+            timed_stim_times    = [0:1:3];
+            timed_resp_peaks    = [resp_peaks(1) resp_peaks(find(round(stim_times*100) == 100)) resp_peaks(find(round(stim_times*100) == 200)) resp_peaks(find(round(stim_times*100) == 300))];
+        end
         
-        split_plot_mat      = condition_mat(:,split_plots);
-        [split_plot_rows, indxa, cond_plot_inds] = unique(split_plot_mat,'rows');
         
-        [a,b,cond_plot_inds] = unique(cond_plot_inds);
-        
-        %% Look at peak instantaneous firing rate between LED and no LED
+        %% Look at peak instantaneous firing rate of first response between LED and no LED
         contrast_conds      = [1 6];
         contrast_cond_mat   = condition_mat(:,contrast_conds);
         [contrast_cond_rows, indxa, cond_inds] = unique(contrast_cond_mat,'rows');
@@ -114,20 +148,20 @@ for i = 1:length(sdata)
         [uniq_LED_delays, indxa, LED_inds] = unique(LED_delays);
         LED_control_inds            = LED_inds == LED_inds(end);
         
-        LED_rel_mat                 = experiment(j).LED_rel(LED_control_inds,summarise_channels);
-        LED_rel_mean(counter)       = mean(LED_rel_mat(:));
+        LED_rate_mat             	= experiment(j).LED_rate(LED_control_inds,summarise_channels);
+        LED_mean(counter)           = mean(LED_rate_mat(:));
         
-        LED_sust_mat                = experiment(j).LED_sust_rel(LED_control_inds,summarise_channels);
-        LED_sust_rel_mean(counter)	= mean(LED_sust_mat(:));
+        LED_sust_mat                = experiment(j).LED_sust_rates(LED_control_inds,summarise_channels);
+        LED_sust_mean(counter)      = mean(LED_sust_mat(:));
         
-        LED_OFF_mat                 = experiment(j).LED_OFF_rel(LED_control_inds,summarise_channels);
-        LED_OFF_rel_mean(counter)  	= mean(LED_OFF_mat(:));
+        LED_OFF_mat                 = experiment(j).LED_OFF_rates(LED_control_inds,summarise_channels);
+        LED_OFF_mean(counter)       = mean(LED_OFF_mat(:));
         
         %% LED PSTHs
-        LED_rel_PSTHs               = experiment(j).LED_win_rel(LED_control_inds,summarise_channels,:);
-        mean_LED_rel_PSTHs          = squeeze(mean(LED_rel_PSTHs,2));
-        LED_rel_traces(:,counter) 	= mean(mean_LED_rel_PSTHs);
-        LED_win_edges(:,counter)  	= experiment(j).LEDwinedges(1:end-1);
+        LED_rate_PSTHs            	= experiment(j).LED_win_rates(LED_control_inds,summarise_channels,:);
+        mean_LED_rate_PSTHs      	= squeeze(mean(LED_rate_PSTHs,2));
+        LED_rate_traces(:,counter) 	= mean(mean_LED_rate_PSTHs);
+        LED_win_edges(:,counter)   	= experiment(j).LEDwinedges(1:end-1);
         
     end
 end
@@ -135,7 +169,6 @@ end
 qLEDresp            = LEDresp > LEDresp_threshold;
 
 if q_check_LED_resp
-    
     P_rate_LED_on       = P_rate_LED_on(qLEDresp);
     P_rate_LED_off      = P_rate_LED_off(qLEDresp);
     A_rate_LED_on       = A_rate_LED_on(qLEDresp);
@@ -227,9 +260,9 @@ set(gcf,'Position',[.167 .4 .67 .4])
 set(gcf,'Color',[1 1 1])
 
 subplot(1,2,1)
-plot_handle = plot(LED_win_edges(:,~qLEDresp),LED_rel_traces(:,~qLEDresp),'r-','LineWidth',2);
+plot_handle = plot(LED_win_edges(:,~qLEDresp),LED_rate_traces(:,~qLEDresp),'r-','LineWidth',2);
 hold on
-plot_handle = plot(LED_win_edges(:,qLEDresp),LED_rel_traces(:,qLEDresp),'k-','LineWidth',2);
+plot_handle = plot(LED_win_edges(:,qLEDresp),LED_rate_traces(:,qLEDresp),'k-','LineWidth',2);
 title('Average LED response')
 set(gca,'LineWidth',2,'FontName','Garamond','FontSize',20,'FontWeight','Bold')
 xlabel('Time (s)')
@@ -242,7 +275,7 @@ ylim([0 ylimits(2)*1.2])
 
 qzoom           = LED_win_edges(:,1) >= z_LED_tmin & LED_win_edges(:,1) <= z_LED_tmax;
 z_LED_tvals     = LED_win_edges(qzoom,1);
-z_LED_traces    = LED_rel_traces(qzoom,:);
+z_LED_traces    = LED_rate_traces(qzoom,:);
 
 subplot(1,2,2)
 plot(z_LED_tvals,z_LED_traces(:,~qLEDresp),'r-','LineWidth',2)
