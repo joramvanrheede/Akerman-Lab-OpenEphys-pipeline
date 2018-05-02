@@ -1,4 +1,4 @@
-function channels_to_rasterplots(channelfile,chans,split_plots,split_figures,trialrange,x_ax_lims)
+function fighandles = channels_to_rasterplots(channelfile,chans,split_plots,split_figures,trialrange,x_ax_lims,condition_name,condition_units)
 % channels_to_rasterplots(channelfile,chans,split_plots,split_figures,trialrange,x_ax_lims)
 % Figures with rasterplots separated by conditions
 % channelfile:      Full file name of 'channels' data struct
@@ -45,10 +45,11 @@ split_figure_mat        = condition_mat(:,split_figures);
 % work out which conditions go in which figure
 [split_fig_rows, indxa, cond_fig_inds] = unique(split_figure_mat,'rows');
 
+fighandles = [];
 for a = 1:length(split_fig_rows)
     
     % Create new figure and set it up 
-    figure
+    fighandles(a) = figure;
     set(gcf,'Units','normalized')
     set(gcf,'Position',[.2 .1 .6 .9])
     set(gcf,'Color',[1 1 1])
@@ -91,13 +92,12 @@ for a = 1:length(split_fig_rows)
         spike_episodes  = spike_episodes';
         spike_episodes  = spike_episodes(:);
         
-        spike_episodes
         % create plot
-        plotSpikeRaster(spike_episodes,'PlotType','vertline','XLimForCell',x_ax_lims,'VertSpikeHeight',.8)
+        plotSpikeRaster(spike_episodes,'PlotType','vertline','XLimForCell',x_ax_lims,'VertSpikeHeight',.8);
         
         
         set(gca,'xtick',x_ax_lims(1):x_ax_lims(end),'ytick',[0:max(trialnrs):max(trialnrs)*length(chans)],'BoxStyle','full')
-        title(['Cond_Value = ' num2str(condition_mat(qcond,split_plots(1)))])
+        title([condition_name ' = ' num2str(condition_mat(qcond,split_plots(1))) condition_units])
     end
 end
 
