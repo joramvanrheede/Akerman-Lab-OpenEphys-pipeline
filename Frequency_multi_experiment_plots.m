@@ -21,7 +21,7 @@ summarise_channels  = [1:16]; % include these channels
 
 % apply threshold for LED responsiveness?
 q_check_LED_resp    = true; % 
-LEDresp_threshold   = 1.5;  % threshold relative to spontaneous
+LEDresp_threshold   = 3;  % threshold relative to spontaneous
 
 % response window for assessing whisk response to stimuli for purpose of
 % comparison of 1st, 2nd, 3rd, last...
@@ -57,6 +57,7 @@ LED_rate_traces   	= [];
 LED_win_edges       = [];
 counter             = 0;
 LEDresp           	= [];
+freq_resp_measures  = [];
 for i = 1:length(sdata)
     experiment              = sdata(i).expt;
     
@@ -64,11 +65,13 @@ for i = 1:length(sdata)
 
         counter             = counter+1;
         
-        condition_mat       = experiment(j).condition_mat;
+        condition_mat       = experiment(j).condition_mat
         
+        first_resp_peaks    = [];
+        timed_resp_peaks    = [];
         for k = 1:size(condition_mat,1)
             
-            these_conds         = condition_mat(a,:);
+            these_conds         = condition_mat(k,:);
             
             this_LED_delay      = these_conds(1);
             this_frequency      = these_conds(4);
@@ -96,12 +99,21 @@ for i = 1:length(sdata)
             end
             
             first_stim_times    = [stim_times(1:4)];
-            first_resp_peaks    = [resp_peaks(1:4)];
+            first_resp_peaks    = [first_resp_peaks; resp_peaks(1:4)];
             
             timed_stim_times    = [0:1:3];
-            timed_resp_peaks    = [resp_peaks(1) resp_peaks(find(round(stim_times*100) == 100)) resp_peaks(find(round(stim_times*100) == 200)) resp_peaks(find(round(stim_times*100) == 300))];
+            timed_resp_peaks    = [timed_resp_peaks; resp_peaks(1) resp_peaks(find(round(stim_times*100) == 100)) resp_peaks(find(round(stim_times*100) == 200)) resp_peaks(find(round(stim_times*100) == 300))];
+
         end
         
+        freq_resp_measures(counter).first_resp_peaks    = first_resp_peaks;
+        freq_resp_measures(counter).timed_resp_peaks    = timed_resp_peaks;
+        freq_resp_measures(counter).firstratio          = first_resp_peaks(:,4)./first_resp_peaks(:,1);
+        freq_resp_measures(counter).timedratio          = timed_resp_peaks(:,4)./timed_resp_peaks(:,1);
+        freq_resp_measures(counter).frequencies         = condition_mat(:,4);
+        freq_resp_measures(counter).LEDtime             = condition_mat(:,1);
+        freq_resp_measures(counter).stimulator          = condition_mat(:,6);
+
         
         %% Look at peak instantaneous firing rate of first response between LED and no LED
         contrast_conds      = [1 6];
@@ -120,6 +132,8 @@ for i = 1:length(sdata)
         else
             P_whisk_stim = 2;
             A_whisk_stim = 1;
+            % make sure that principal stimulator is stimulator 1 in freq_resp_measures 
+            freq_resp_measures(counter).stimulator = 3 -freq_resp_measures(counter).stimulator;
         end
         
         P_rate_LED_on(counter)   	= contrast_rates(P_whisk_stim);
@@ -186,7 +200,119 @@ if q_check_LED_resp
     A_pktime_LED_on     = A_pktime_LED_on(qLEDresp);
     A_pktime_LED_off	= A_pktime_LED_off(qLEDresp);
     
+    freq_resp_measures  = freq_resp_measures(qLEDresp);
+    
 end
+
+%%
+first_pks   = cell2mat({freq_resp_measures.first_resp_peaks}');
+timed_pks   = cell2mat({freq_resp_measures.timed_resp_peaks}');
+first_ratio = cell2mat({freq_resp_measures.firstratio}');
+timed_ratio = cell2mat({freq_resp_measures.timedratio}');
+frequencies = round(cell2mat({freq_resp_measures.frequencies}'));
+LEDtime     = cell2mat({freq_resp_measures.LEDtime}');
+LEDtime     = LEDtime < 2;
+stimulator  = cell2mat({freq_resp_measures.stimulator}');
+
+uniqfreqs   = unique(frequencies);
+uniqLEDs    = unique(LEDtime);
+uniqstims   = unique(stimulator);
+nLEDconds   = length(uniqLEDs);
+nstimulators = length(uniqstims);
+figure
+
+for a = 1:nLEDconds
+    for b = 1:nstimulators
+        qLED    = LEDtime == uniqLEDs(a);
+        qstim   = stimulator == uniqstims(b);
+        
+        % set up variables for loop over uniqfreqs
+        first_resp_plotmeans    = [];
+        first_resp_plotserrs    = [];
+        timed_resp_plotmeans    = [];
+        timed_resp_plotserrs    = [];
+        plotfreqs               = [];
+        
+        % loop over uniqfreqs
+        for c = 1:length(uniqfreqs)
+            qfreq   = frequencies == uniqfreqs(c);
+            qall    = qfreq & qLED & qstim;
+            
+            % if no data meet these criteria, go to next iteration
+            if sum(qall) == 0
+                continue
+            end
+            
+            % get ratios that meet criteria
+            these_first_ratios      = first_ratio(qall);
+            these_timed_ratios      = timed_ratio(qall);
+            
+            % get means and standard errors for plotting
+            first_resp_plotmeans    = [first_resp_plotmeans; mean(these_first_ratios)];
+            first_resp_plotserrs    = [first_resp_plotserrs; serr(these_first_ratios)];
+            timed_resp_plotmeans    = [timed_resp_plotmeans; mean(these_timed_ratios)];
+            timed_resp_plotserrs    = [timed_resp_plotserrs; serr(these_timed_ratios)];
+            plotfreqs               = [plotfreqs, uniqfreqs(c)];
+        end
+        
+        figure(21)
+        subplot(1,2,b)
+        if ~uniqLEDs(a)
+            errorbar(plotfreqs,first_resp_plotmeans,first_resp_plotserrs,'k-','LineWidth',2)
+        else
+            errorbar(plotfreqs,first_resp_plotmeans,first_resp_plotserrs,'r-','LineWidth',2)
+        end
+        xlim([0 16])
+        set(gca,'LineWidth',2,'FontName','Garamond','FontSize',20)
+        if b == 1
+            title('Principal whisker, first vs n-th response')
+        elseif b == 2
+            title('Adjacent whisker, first vs n-th response')
+        end
+        xlabel('Stimulus trigger frequency')
+        ylabel('Response ratio (relative to 1st)')
+        hold on
+        
+        figure(22)
+        subplot(1,2,b)
+        if ~uniqLEDs(a)
+            errorbar(plotfreqs,timed_resp_plotmeans,timed_resp_plotserrs,'k-','LineWidth',2)
+        else
+            errorbar(plotfreqs,timed_resp_plotmeans,timed_resp_plotserrs,'r-','LineWidth',2)
+        end
+        xlim([0 16])
+        set(gca,'LineWidth',2,'FontName','Garamond','FontSize',20)
+        
+        if b == 1
+            title('Principal Whisker - First vs n seconds response')
+        elseif b ==2 
+            title('Adjacent Whisker - First vs n seconds response')
+        end
+        
+        xlabel('Stimulus trigger frequency')
+        ylabel('Response ratio (relative to 1st)')
+        hold on
+    end
+end
+figure(21)
+set(gcf,'Units','Normalized')
+set(gcf,'Position',[.2 .4 .6 .4])
+% Set all y axes to the same range (based on the largest range)
+plotaxes    = get(gcf,'Children');
+maxy        = cellfun(@max,get(plotaxes,'Ylim'));
+set(plotaxes,'Ylim',[0 max(maxy)]);
+
+figure(22)
+set(gcf,'Units','Normalized')
+set(gcf,'Position',[.2 .4 .6 .4])
+% Set all y axes to the same range (based on the largest range)
+plotaxes    = get(gcf,'Children');
+maxy        = cellfun(@max,get(plotaxes,'Ylim'));
+set(plotaxes,'Ylim',[0 max(maxy)]);
+
+
+
+clunk
 
 
 %% Response size plotting
