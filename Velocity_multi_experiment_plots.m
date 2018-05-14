@@ -95,7 +95,6 @@ for i = 1:length(sdata)
         vel_resp_measures(counter).LEDtime      = LEDtimes';
         vel_resp_measures(counter).PA_ratios    = [peak_rates(stimulator == P_whisk_stim) ./ peak_rates(stimulator == A_whisk_stim)]';
 
-        
         LEDresp(counter)         	= mean(experiment(j).LED_rel(:));
 
         LED_delays                  = condition_mat(:,1);
