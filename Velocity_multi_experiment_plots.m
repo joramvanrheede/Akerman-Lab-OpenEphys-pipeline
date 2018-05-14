@@ -20,7 +20,7 @@ save_folder         = '/Users/Joram/Dropbox/Akerman Postdoc/Figures/Matlab outpu
 save_expt_name      = 'Velocity multi 08052018';
 save_figs        	= false;
 
-summarise_channels  = [1:16]; % include these channels
+summarise_channels  = [1:4 13:16]; % include these channels
 
 % apply threshold for LED responsiveness?
 q_check_LED_resp    = true; % 
@@ -76,7 +76,7 @@ for i = 1:length(sdata)
             peak_rates(k)       = mean(experiment(j).whisk_peak_rate(k,summarise_channels));
             
         end
-
+        
         stim_1_resp     = mean(peak_rates(stimulator == 1));
         stim_2_resp     = mean(peak_rates(stimulator == 2));
         
@@ -93,7 +93,7 @@ for i = 1:length(sdata)
         vel_resp_measures(counter).peak_rates   = peak_rates';
         vel_resp_measures(counter).velocities   = velocities';
         vel_resp_measures(counter).LEDtime      = LEDtimes';
-
+        vel_resp_measures(counter).PA_ratios    = [peak_rates(stimulator == P_whisk_stim) ./ peak_rates(stimulator == A_whisk_stim)]';
         
         
 %         P_rate_LED_on(counter)   	= contrast_rates(P_whisk_stim);
@@ -162,8 +162,9 @@ if q_check_LED_resp
     
 end
 
-peak_rates  = round(cell2mat({vel_resp_measures.peak_rates}'));
+peak_rates  = cell2mat({vel_resp_measures.peak_rates}');
 velocities  = round(cell2mat({vel_resp_measures.velocities}'));
+PA_ratios   = cell2mat({vel_resp_measures.PA_ratios}');
 LEDtime     = cell2mat({vel_resp_measures.LEDtime}');
 LEDtime     = LEDtime < 2;
 stimulator  = cell2mat({vel_resp_measures.stimulator}');
@@ -206,7 +207,7 @@ for a = 1:nLEDconds
         end
         
         figure(21)
-        subplot(1,2,b)
+        subplot(1,3,b)
         if ~uniqLEDs(a)
             errorbar(log(plot_vels),plot_rate_means,plot_rate_serrs,'k-','LineWidth',2)
         else
@@ -224,13 +225,50 @@ for a = 1:nLEDconds
         hold on
         
     end
+    
+    plot_PAR_means  = [];
+    plot_PAR_serrs  = [];
+    plot_vels       = [];
+    for c = 1:length(uniqvels)
+        qvel    = velocities == uniqvels(c);
+        qall    = qvel & qLED;
+        qall    = qall(stimulator == 1); 
+        
+        % if no data meet these criteria, go to next iteration
+        if sum(qall) == 0
+            continue
+        end
+        
+        % get ratios that meet criteria
+        these_PA_ratios  	= PA_ratios(qall);
+        
+        % get means and standard errors for plotting
+        plot_PAR_means      = [plot_PAR_means; mean(these_PA_ratios)];
+        plot_PAR_serrs      = [plot_PAR_serrs; serr(these_PA_ratios)];
+        
+        plot_vels        	= [plot_vels, uniqvels(c)];
+    end
+    
+    subplot(1,3,3)
+    if ~uniqLEDs(a)
+        errorbar(log(plot_vels),plot_PAR_means,plot_PAR_serrs,'k-','LineWidth',2)
+    else
+        errorbar(log(plot_vels),plot_PAR_means,plot_PAR_serrs,'r-','LineWidth',2)
+    end
+    xlim([0 6])
+    set(gca,'LineWidth',2,'FontName','Garamond','FontSize',20)
+    xlabel('Log Velocity')
+    ylabel('P-A Ratio')
+    title('P-A Ratio')
+    hold on
+    
 end
 figure(21)
 set(gcf,'Units','Normalized')
-set(gcf,'Position',[.2 .4 .6 .4])
+set(gcf,'Position',[.1 .4 .8 .4])
 % Set all y axes to the same range (based on the largest range)
 plotaxes    = get(gcf,'Children');
 maxy        = cellfun(@max,get(plotaxes,'Ylim'));
 set(plotaxes,'Ylim',[0 max(maxy)]);
-
+ylim([0 3]); % adjust final axes
 
