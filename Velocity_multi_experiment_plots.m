@@ -94,46 +94,28 @@ for i = 1:length(sdata)
         vel_resp_measures(counter).velocities   = velocities';
         vel_resp_measures(counter).LEDtime      = LEDtimes';
         vel_resp_measures(counter).PA_ratios    = [peak_rates(stimulator == P_whisk_stim) ./ peak_rates(stimulator == A_whisk_stim)]';
-        
-        
-%         P_rate_LED_on(counter)   	= contrast_rates(P_whisk_stim);
-%         P_rate_LED_off(counter)  	= contrast_rates(P_whisk_stim+2);
-%         A_rate_LED_on(counter)  	= contrast_rates(A_whisk_stim);
-%         A_rate_LED_off(counter)   	= contrast_rates(A_whisk_stim+2);
-%         
-%         PA_ratio_LED_on(counter)  	= P_rate_LED_on(counter) / A_rate_LED_on(counter);
-%         PA_ratio_LED_off(counter)  	= P_rate_LED_off(counter) / A_rate_LED_off(counter);
-%         
-%         P_LED_onoff_ratio(counter) 	= P_rate_LED_on(counter) / P_rate_LED_off(counter);
-%         A_LED_onoff_ratio(counter) 	= A_rate_LED_on(counter) / A_rate_LED_off(counter);
-%         
-%         P_pktime_LED_on(counter)  	= contrast_times(P_whisk_stim);
-%         P_pktime_LED_off(counter)  	= contrast_times(P_whisk_stim+2);
-%         A_pktime_LED_on(counter)  	= contrast_times(A_whisk_stim);
-%         A_pktime_LED_off(counter)  	= contrast_times(A_whisk_stim+2);
-%         
-%         %% LED resp values
+
         
         LEDresp(counter)         	= mean(experiment(j).LED_rel(:));
-%
-%         LED_delays                  = condition_mat(:,1);
-%         [uniq_LED_delays, indxa, LED_inds] = unique(LED_delays);
-%         LED_control_inds            = LED_inds == LED_inds(end);
-%
-%         LED_rate_mat             	= experiment(j).LED_rate(LED_control_inds,summarise_channels);
-%         LED_mean(counter)           = mean(LED_rate_mat(:));
-%
-%         LED_sust_mat                = experiment(j).LED_sust_rates(LED_control_inds,summarise_channels);
-%         LED_sust_mean(counter)      = mean(LED_sust_mat(:));
-%
-%         LED_OFF_mat                 = experiment(j).LED_OFF_rates(LED_control_inds,summarise_channels);
-%         LED_OFF_mean(counter)       = mean(LED_OFF_mat(:));
 
-%         %% LED PSTHs
-%         LED_rate_PSTHs            	= experiment(j).LED_win_rates(LED_control_inds,summarise_channels,:);
-%         mean_LED_rate_PSTHs      	= squeeze(mean(LED_rate_PSTHs,2));
-%         LED_rate_traces(:,counter) 	= mean(mean_LED_rate_PSTHs);
-%         LED_win_edges(:,counter)   	= experiment(j).LEDwinedges(1:end-1);
+        LED_delays                  = condition_mat(:,1);
+        [uniq_LED_delays, indxa, LED_inds] = unique(LED_delays);
+        LED_control_inds            = LED_inds == LED_inds(end);
+
+        LED_rate_mat             	= experiment(j).LED_rate(LED_control_inds,summarise_channels);
+        LED_mean(counter)           = mean(LED_rate_mat(:));
+
+        LED_sust_mat                = experiment(j).LED_sust_rates(LED_control_inds,summarise_channels);
+        LED_sust_mean(counter)      = mean(LED_sust_mat(:));
+
+        LED_OFF_mat                 = experiment(j).LED_OFF_rates(LED_control_inds,summarise_channels);
+        LED_OFF_mean(counter)       = mean(LED_OFF_mat(:));
+
+        %% LED PSTHs
+        LED_rate_PSTHs            	= experiment(j).LED_win_rates(LED_control_inds,summarise_channels,:);
+        mean_LED_rate_PSTHs      	= squeeze(mean(LED_rate_PSTHs,2));
+        LED_rate_traces(:,counter) 	= mean(mean_LED_rate_PSTHs);
+        LED_win_edges(:,counter)   	= experiment(j).LEDwinedges(1:end-1);
 
     end
 end
