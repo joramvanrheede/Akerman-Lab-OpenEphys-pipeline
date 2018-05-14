@@ -1,0 +1,236 @@
+% Velocity_multi_experiment_plots
+%
+
+% Multiple experiment plots for drive experiment
+
+%% Add LED response size
+% LED ON response peak
+% LED ON sustained response (in control condition!)
+% LED OFF response
+% some responsiveness criterion implementation
+
+%% Add examination of tracking repeat stimuli
+% Plot response with error bars to first 4-5 stimuli
+% Plot response to first stimulus vs response to stimulus 3 seconds later
+% (by frequency)
+% Make some metrics: first/fourth stim ratio, first vs 3 secs ratio
+%
+
+save_folder         = '/Users/Joram/Dropbox/Akerman Postdoc/Figures/Matlab output';
+save_expt_name      = 'Velocity multi 08052018';
+save_figs        	= false;
+
+summarise_channels  = [1:16]; % include these channels
+
+% apply threshold for LED responsiveness?
+q_check_LED_resp    = true; % 
+LEDresp_threshold   = 3;  % threshold relative to spontaneous
+
+%% Set for this type of experiment
+split_conditions    = [1 5]; % split by these conditions, summarise over others
+split_plots         = [6]; % [4 6] works
+
+%%
+close all
+
+P_rate_LED_on       = [];
+P_rate_LED_off      = [];
+A_rate_LED_on       = [];
+A_rate_LED_off      = [];
+PA_ratio_LED_on     = [];
+PA_ratio_LED_off    = [];
+P_LED_onoff_ratio   = [];
+A_LED_onoff_ratio   = [];
+P_pktime_LED_on     = [];
+P_pktime_LED_off	= [];
+A_pktime_LED_on     = [];
+A_pktime_LED_off	= [];
+LED_rel_mean        = [];
+LED_sust_mean       = [];
+LED_OFF_mean       	= [];
+LED_rate_traces   	= [];
+LED_win_edges       = [];
+counter             = 0;
+LEDresp           	= [];
+vel_resp_measures   = [];
+for i = 1:length(sdata)
+    experiment              = sdata(i).expt;
+    
+    for j = 1:length(experiment)
+        counter             = counter+1; % keep track of total nr of experiments
+        
+        condition_mat       = experiment(j).condition_mat;
+        
+        peak_rates  = [];
+        velocities  = [];
+        stimulator  = [];
+        LEDtimes    = [];
+        for k = 1:size(condition_mat,1)
+            
+            these_conds         = condition_mat(k,:);
+            
+            LEDtimes(k)         = these_conds(1);
+            velocities(k)       = these_conds(5);
+            stimulator(k)     	= these_conds(6);
+            
+            peak_rates(k)       = mean(experiment(j).whisk_peak_rate(k,summarise_channels));
+            
+        end
+
+        stim_1_resp     = mean(peak_rates(stimulator == 1));
+        stim_2_resp     = mean(peak_rates(stimulator == 2));
+        
+        if stim_1_resp > stim_2_resp
+            P_whisk_stim = 1;
+            A_whisk_stim = 2;
+            vel_resp_measures(counter).stimulator   = stimulator';
+        else
+            P_whisk_stim = 2;
+            A_whisk_stim = 1;
+            vel_resp_measures(counter).stimulator   = 3-stimulator';
+        end
+        
+        vel_resp_measures(counter).peak_rates   = peak_rates';
+        vel_resp_measures(counter).velocities   = velocities';
+        vel_resp_measures(counter).LEDtime      = LEDtimes';
+
+        
+        
+%         P_rate_LED_on(counter)   	= contrast_rates(P_whisk_stim);
+%         P_rate_LED_off(counter)  	= contrast_rates(P_whisk_stim+2);
+%         A_rate_LED_on(counter)  	= contrast_rates(A_whisk_stim);
+%         A_rate_LED_off(counter)   	= contrast_rates(A_whisk_stim+2);
+%         
+%         PA_ratio_LED_on(counter)  	= P_rate_LED_on(counter) / A_rate_LED_on(counter);
+%         PA_ratio_LED_off(counter)  	= P_rate_LED_off(counter) / A_rate_LED_off(counter);
+%         
+%         P_LED_onoff_ratio(counter) 	= P_rate_LED_on(counter) / P_rate_LED_off(counter);
+%         A_LED_onoff_ratio(counter) 	= A_rate_LED_on(counter) / A_rate_LED_off(counter);
+%         
+%         P_pktime_LED_on(counter)  	= contrast_times(P_whisk_stim);
+%         P_pktime_LED_off(counter)  	= contrast_times(P_whisk_stim+2);
+%         A_pktime_LED_on(counter)  	= contrast_times(A_whisk_stim);
+%         A_pktime_LED_off(counter)  	= contrast_times(A_whisk_stim+2);
+%         
+%         %% LED resp values
+        
+        LEDresp(counter)         	= mean(experiment(j).LED_rel(:));
+%
+%         LED_delays                  = condition_mat(:,1);
+%         [uniq_LED_delays, indxa, LED_inds] = unique(LED_delays);
+%         LED_control_inds            = LED_inds == LED_inds(end);
+%
+%         LED_rate_mat             	= experiment(j).LED_rate(LED_control_inds,summarise_channels);
+%         LED_mean(counter)           = mean(LED_rate_mat(:));
+%
+%         LED_sust_mat                = experiment(j).LED_sust_rates(LED_control_inds,summarise_channels);
+%         LED_sust_mean(counter)      = mean(LED_sust_mat(:));
+%
+%         LED_OFF_mat                 = experiment(j).LED_OFF_rates(LED_control_inds,summarise_channels);
+%         LED_OFF_mean(counter)       = mean(LED_OFF_mat(:));
+
+%         %% LED PSTHs
+%         LED_rate_PSTHs            	= experiment(j).LED_win_rates(LED_control_inds,summarise_channels,:);
+%         mean_LED_rate_PSTHs      	= squeeze(mean(LED_rate_PSTHs,2));
+%         LED_rate_traces(:,counter) 	= mean(mean_LED_rate_PSTHs);
+%         LED_win_edges(:,counter)   	= experiment(j).LEDwinedges(1:end-1);
+
+    end
+end
+
+qLEDresp    = LEDresp > LEDresp_threshold;
+
+if q_check_LED_resp
+%     P_rate_LED_on       = P_rate_LED_on(qLEDresp);
+%     P_rate_LED_off      = P_rate_LED_off(qLEDresp);
+%     A_rate_LED_on       = A_rate_LED_on(qLEDresp);
+%     A_rate_LED_off      = A_rate_LED_off(qLEDresp);
+%     
+%     PA_ratio_LED_on     = PA_ratio_LED_on(qLEDresp);
+%     PA_ratio_LED_off	= PA_ratio_LED_off(qLEDresp);
+%     
+%     P_LED_onoff_ratio   = P_LED_onoff_ratio(qLEDresp);
+%     A_LED_onoff_ratio	= A_LED_onoff_ratio(qLEDresp);
+%     
+%     
+%     P_pktime_LED_on     = P_pktime_LED_on(qLEDresp);
+%     P_pktime_LED_off  	= P_pktime_LED_off(qLEDresp);
+%     A_pktime_LED_on     = A_pktime_LED_on(qLEDresp);
+%     A_pktime_LED_off	= A_pktime_LED_off(qLEDresp);
+%     
+    vel_resp_measures   = vel_resp_measures(qLEDresp);
+    
+end
+
+peak_rates  = round(cell2mat({vel_resp_measures.peak_rates}'));
+velocities  = round(cell2mat({vel_resp_measures.velocities}'));
+LEDtime     = cell2mat({vel_resp_measures.LEDtime}');
+LEDtime     = LEDtime < 2;
+stimulator  = cell2mat({vel_resp_measures.stimulator}');
+
+uniqvels        = unique(velocities);
+uniqLEDs        = unique(LEDtime);
+uniqstims       = unique(stimulator);
+nLEDconds       = length(uniqLEDs);
+nstimulators    = length(uniqstims);
+
+figure
+for a = 1:nLEDconds
+    for b = 1:nstimulators
+        qLED    = LEDtime == uniqLEDs(a);
+        qstim   = stimulator == uniqstims(b);
+        
+        % set up variables for loop over uniqfreqs
+        plot_rate_means         = [];
+        plot_rate_serrs         = [];
+        plot_vels               = [];
+        
+        % loop over uniqvels
+        for c = 1:length(uniqvels)
+            qvel   = velocities == uniqvels(c);
+            qall    = qvel & qLED & qstim;
+            
+            % if no data meet these criteria, go to next iteration
+            if sum(qall) == 0
+                continue
+            end
+            
+            % get ratios that meet criteria
+            these_peak_rates        = peak_rates(qall);
+            
+            % get means and standard errors for plotting
+            plot_rate_means    = [plot_rate_means; mean(these_peak_rates)];
+            plot_rate_serrs    = [plot_rate_serrs; serr(these_peak_rates)];
+
+            plot_vels        	= [plot_vels, uniqvels(c)];
+        end
+        
+        figure(21)
+        subplot(1,2,b)
+        if ~uniqLEDs(a)
+            errorbar(log(plot_vels),plot_rate_means,plot_rate_serrs,'k-','LineWidth',2)
+        else
+            errorbar(log(plot_vels),plot_rate_means,plot_rate_serrs,'r-','LineWidth',2)
+        end
+        xlim([0 6])
+        set(gca,'LineWidth',2,'FontName','Garamond','FontSize',20)
+        if b == 1
+            title('Principal whisker, Peak response rate')
+        elseif b == 2
+            title('Adjacent whisker, Peak response rate')
+        end
+        xlabel('Log Velocity')
+        ylabel('Peak response rate')
+        hold on
+        
+    end
+end
+figure(21)
+set(gcf,'Units','Normalized')
+set(gcf,'Position',[.2 .4 .6 .4])
+% Set all y axes to the same range (based on the largest range)
+plotaxes    = get(gcf,'Children');
+maxy        = cellfun(@max,get(plotaxes,'Ylim'));
+set(plotaxes,'Ylim',[0 max(maxy)]);
+
+
