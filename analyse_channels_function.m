@@ -10,7 +10,7 @@ function channels = analyse_channels_function(channels,analysisparams)
 % analysisparams.LEDwinedges
 % analysisparams.samplerate - sample rate of data; is used to set the bin size to determine whisker spike rate for maximal resolution
 % analysisparams.profile_smoothing - smoothing window for spike profile in milliseconds
-
+% 
 % returns 'channels' structure with additional fields 
 % additions:
 % PSTHs
@@ -21,7 +21,7 @@ function channels = analyse_channels_function(channels,analysisparams)
 % This also needs to be done for LED - in particular, detection of peak
 % response in different channels, to see temporal order of activation
 % between channels if any
-% --> should this just be a complete profile over time
+% --> should this just be a complete profile over time?
 
 %% unpack parameters struct
 whiskwinedges       = analysisparams.whiskwinedges;
@@ -35,7 +35,6 @@ profile_smoothing   = analysisparams.profile_smoothing; % smoothing window for s
 %% Running code starts here
 
 cond_nr             = length(channels(1).conditions);
-
 
 conditions  = [];
 for a = 1:length(channels(1).conditions)
@@ -89,8 +88,8 @@ for a = 1:length(channels)
             n_smooth_samples        = n_smooth_samples + 1; 
         end
         
-        kernel_vect                 = [-3:(6/n_smooth_samples):3];
-        gauss_kernel                = normpdf(kernel_vect,0,1);
+        kernel_vect                 = [-3:(6/n_smooth_samples):3]; % let vector run from -3(SDs) to +3(SDs)
+        gauss_kernel                = normpdf(kernel_vect,0,1); % create gaussian using the normal probability density function
         
         % ensure that the kernel has a total area under the curve of 1
         gauss_kernel                = gauss_kernel / sum(gauss_kernel);

@@ -2,7 +2,7 @@
 
 close all
 
-experiment          = sdata(1).expt(1);
+experiment          = sdata(2).expt(1);
 
 summarise_channels  = [1:16]; % include these channels
 split_conditions    = [1 6]; % split by these conditions, summarise over others

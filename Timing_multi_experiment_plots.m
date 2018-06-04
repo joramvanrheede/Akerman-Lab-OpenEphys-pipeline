@@ -15,11 +15,11 @@
 
 
 save_folder         = '/Users/Joram/Dropbox/Akerman Postdoc/Figures/Matlab output';
-save_expt_name      = 'Frequency 20180417';
+save_expt_name      = 'Timing 20180417';
 save_figs        	= false;
 
-summarise_channels  = [1:16]; % include these channels
-LEDresp_threshold   = 1.5;
+summarise_channels  = [13:16]; % include these channels
+LEDresp_threshold   = 2.5;
 
 q_check_LED_resp    = true;
 
@@ -78,7 +78,12 @@ for i = 1:length(sdata)
         contrast_delays     = [];
         contrast_stim       = [];
         for a  = unique(cond_inds)'
-            contrast_rates      = [contrast_rates; mean(mean(experiment(j).whisk_peak_rate(cond_inds == a,summarise_channels)))];
+            
+            these_peak_rates    = experiment(j).whisk_peak_rate(cond_inds == a,summarise_channels);
+            these_spont_rates   = experiment(j).spont_rate(summarise_channels);
+            these_rel_peaks     = these_peak_rates ./ these_spont_rates;
+            
+            contrast_rates      = [contrast_rates; mean(these_rel_peaks)];
             contrast_times      = [contrast_times; mean(mean(experiment(j).whisk_peak_time(cond_inds == a,summarise_channels)))];
             contrast_delays     = [contrast_delays; condition_mat(cond_inds == a,1) - condition_mat(cond_inds == a,2)];
             contrast_stim       = [contrast_stim; condition_mat(cond_inds == a,6)];
@@ -164,7 +169,6 @@ ylimits = ylim;
 ylim([0 ylimits(2)*1.2])
 
 
-clunk
 if save_figs
     experiment_plot_folder      = [save_folder filesep save_expt_name];
     if ~isdir(experiment_plot_folder)
@@ -173,6 +177,9 @@ if save_figs
     print(gcf,[experiment_plot_folder filesep 'Principal vs Adjacent resp paired plots - chan ' num2str(summarise_channels(1)) '-' num2str(summarise_channels(end))],'-dpng','-r300')
 end
 
+
+return
+
 figure
 set(gcf,'Color',[1 1 1])
 pairedlineplot(P_LED_onoff_ratio,A_LED_onoff_ratio,{'Principal' 'Adjacent'},'Whisker','LED effect on whisker')
@@ -180,6 +187,7 @@ title('Effect of LED on P vs A whisker')
 set(gca,'LineWidth',2,'FontName','Garamond','FontSize',20)
 ylimits = ylim;
 ylim([0 ylimits(2)*1.2])
+
 
 %% Peak time plotting
 

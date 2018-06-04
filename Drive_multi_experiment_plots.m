@@ -3,7 +3,7 @@
 
 
 save_folder         = '/Users/Joram/Dropbox/Akerman Postdoc/Figures/Matlab output';
-save_figs        	= true;
+save_figs        	= false;
 
 summarise_channels  = [1:16]; % include these channels
 
@@ -26,7 +26,6 @@ for i = 1:length(sdata)
     experiment          = sdata(i).expt;
     
     %%
-    
     condition_mat       = experiment.condition_mat;
     
     split_cond_mat      = condition_mat(:,split_conditions);
