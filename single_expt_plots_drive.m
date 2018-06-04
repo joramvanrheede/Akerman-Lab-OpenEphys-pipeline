@@ -10,7 +10,7 @@ split_conditions    = [1 5 6]; % split by these conditions, summarise over other
 split_plots         = [5 6]; % [4 6] works
 
 save_folder         = '/Users/Joram/Dropbox/Akerman Postdoc/Figures/Matlab output';
-save_figs        	= true;
+save_figs        	= false;
 
 %% 
 

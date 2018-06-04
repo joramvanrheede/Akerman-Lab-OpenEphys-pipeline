@@ -312,9 +312,6 @@ set(plotaxes,'Ylim',[0 max(maxy)]);
 
 
 
-clunk
-
-
 %% Response size plotting
 
 figure

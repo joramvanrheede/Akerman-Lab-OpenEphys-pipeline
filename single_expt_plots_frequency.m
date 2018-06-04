@@ -58,6 +58,7 @@ set(gcf,'Position',[0 .4 1 .6])
 figure(3)
 set(gcf,'Units','normalized')
 set(gcf,'Position',[.3 0 .4 1])
+profile_plots   = [];
 for a = 1:size(split_cond_rows,1)
     
     these_conds         = split_cond_rows(a,:);
@@ -109,7 +110,10 @@ for a = 1:size(split_cond_rows,1)
     subplot(length(unique(condition_mat(:,split_plots(1)))),length(unique(condition_mat(:,split_plots(2)))),cond_plot_inds(a))
     xlim([0 6])
     profile_plots(a).resp_peaks = profile_plots(a).resp_peaks(~isnan(profile_plots(a).resp_peaks));
-    plot(1:5,[profile_plots(a).resp_peaks([1:4]) profile_plots(a).resp_peaks(end)],'LineWidth',2,'MarkerSize',25);
+    
+    % hacked this to get response at ~3 seconds even if stim_times has a
+    % value not quite equal to 3...
+    plot(1:5,[profile_plots(a).resp_peaks([1:4]) profile_plots(a).resp_peaks(find(round(stim_times*100) == 300))],'LineWidth',2,'MarkerSize',25);
     set(gca,'LineWidth',2,'FontName','Garamond','FontSize',16)
     hold on
     axis tight
@@ -215,10 +219,10 @@ else
     A_whisk_stim = 1;
 end
 
-P_rate_LED_on       = contrast_rates(P_whisk_stim);
-P_rate_LED_off      = contrast_rates(P_whisk_stim+2);
-A_rate_LED_on       = contrast_rates(A_whisk_stim);
-A_rate_LED_off      = contrast_rates(A_whisk_stim+2);
+P_rate_LED_on       = contrast_rates(P_whisk_stim);     % 
+P_rate_LED_off      = contrast_rates(P_whisk_stim+2);   % 
+A_rate_LED_on       = contrast_rates(A_whisk_stim);     % 
+A_rate_LED_off      = contrast_rates(A_whisk_stim+2);   % 
 
 PA_ratio_LED_on     = P_rate_LED_on / A_rate_LED_on;
 PA_ratio_LED_off    = P_rate_LED_off / A_rate_LED_off;
@@ -226,7 +230,7 @@ PA_ratio_LED_off    = P_rate_LED_off / A_rate_LED_off;
 P_LED_onoff_ratio   = P_rate_LED_on / P_rate_LED_off;
 A_LED_onoff_ratio 	= A_rate_LED_on / A_rate_LED_off;
 
-% plot
+% 
 
 figure
 bar_handle  = bar([P_rate_LED_on P_rate_LED_off; A_rate_LED_on A_rate_LED_off],'LineWidth',2);

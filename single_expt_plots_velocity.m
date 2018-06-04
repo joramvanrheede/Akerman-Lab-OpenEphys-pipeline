@@ -4,7 +4,7 @@ close all
 
 experiment          = sdata(10).expt(1);
 
-summarise_channels  = [5:11]; % include these channels
+summarise_channels  = [1:4]; % include these channels
 split_conditions    = [1 5 6]; % split by these conditions, summarise over others
 
 split_plots         = [5 6]; % [4 6] works

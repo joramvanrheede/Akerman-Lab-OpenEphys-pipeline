@@ -20,7 +20,7 @@ save_folder         = '/Users/Joram/Dropbox/Akerman Postdoc/Figures/Matlab outpu
 save_expt_name      = 'Velocity multi 08052018';
 save_figs        	= false;
 
-summarise_channels  = [1:4 13:16]; % include these channels
+summarise_channels  = [6]; % include these channels
 
 % apply threshold for LED responsiveness?
 q_check_LED_resp    = true; % 
@@ -33,18 +33,6 @@ split_plots         = [6]; % [4 6] works
 %%
 close all
 
-P_rate_LED_on       = [];
-P_rate_LED_off      = [];
-A_rate_LED_on       = [];
-A_rate_LED_off      = [];
-PA_ratio_LED_on     = [];
-PA_ratio_LED_off    = [];
-P_LED_onoff_ratio   = [];
-A_LED_onoff_ratio   = [];
-P_pktime_LED_on     = [];
-P_pktime_LED_off	= [];
-A_pktime_LED_on     = [];
-A_pktime_LED_off	= [];
 LED_rel_mean        = [];
 LED_sust_mean       = [];
 LED_OFF_mean       	= [];
@@ -122,23 +110,7 @@ end
 qLEDresp    = LEDresp > LEDresp_threshold;
 
 if q_check_LED_resp
-%     P_rate_LED_on       = P_rate_LED_on(qLEDresp);
-%     P_rate_LED_off      = P_rate_LED_off(qLEDresp);
-%     A_rate_LED_on       = A_rate_LED_on(qLEDresp);
-%     A_rate_LED_off      = A_rate_LED_off(qLEDresp);
-%     
-%     PA_ratio_LED_on     = PA_ratio_LED_on(qLEDresp);
-%     PA_ratio_LED_off	= PA_ratio_LED_off(qLEDresp);
-%     
-%     P_LED_onoff_ratio   = P_LED_onoff_ratio(qLEDresp);
-%     A_LED_onoff_ratio	= A_LED_onoff_ratio(qLEDresp);
-%     
-%     
-%     P_pktime_LED_on     = P_pktime_LED_on(qLEDresp);
-%     P_pktime_LED_off  	= P_pktime_LED_off(qLEDresp);
-%     A_pktime_LED_on     = A_pktime_LED_on(qLEDresp);
-%     A_pktime_LED_off	= A_pktime_LED_off(qLEDresp);
-%     
+ 
     vel_resp_measures   = vel_resp_measures(qLEDresp);
     
 end
