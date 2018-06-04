@@ -157,7 +157,7 @@ for a = 1:length(channels)
         
         channels(a).conditions(b).LED_OFF_spike_count 	= LEDOFFcount;
         channels(a).conditions(b).LED_OFF_spike_rate  	= (LEDOFFcount ./ LEDwinsize') / n_episodes;
-        channels(a).conditions(b).LED_OFF_spike_rel   	= channels(a).conditions(b).LED_spike_rate / mean(channels(a).spontspikerate);
+        channels(a).conditions(b).LED_OFF_spike_rel   	= channels(a).conditions(b).LED_OFF_spike_rate / mean(channels(a).spontspikerate);
         
         
         %% Sustained LED
@@ -168,10 +168,10 @@ for a = 1:length(channels)
         
         channels(a).conditions(b).LED_sust_spike_count 	= LED_sust_count;
         channels(a).conditions(b).LED_sust_spike_rate  	= (LED_sust_count ./ LED_sust_winsize') / n_episodes;
-        channels(a).conditions(b).LED_sust_spike_rel   	= channels(a).conditions(b).LED_spike_rate / mean(channels(a).spontspikerate);
+        channels(a).conditions(b).LED_sust_spike_rel   	= channels(a).conditions(b).LED_sust_spike_rate / mean(channels(a).spontspikerate);
         
         
-        %% LED
+        %% Activity in LED windows (when LED ON as well as OFF, for post timing experiment comparison)
         
         LEDwinsizes        	= (LEDwinedges(2:end) - LEDwinedges(1:end-1));
         LEDhist             = histc(LED_spikes, LEDwinedges);

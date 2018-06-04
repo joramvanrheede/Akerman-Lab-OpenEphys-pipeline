@@ -10,55 +10,72 @@
 % Loops through a target folder for a particular experiment type (e.g. 'Frequency')
 % 
 
+experiment_type     = 'Frequency';
+experiment_folder   = '/Users/Joram/Dropbox/Akerman Postdoc/Data/Extracted data/Dual Stim';
+
 % location of preprocessed files
-sdata_folder    = '/Users/Joram/Dropbox/Akerman Postdoc/Data/Extracted data 2018_02_07/16_02_Frequency';
+sdata_folder        = [experiment_folder filesep experiment_type]; % '/Users/Joram/Dropbox/Akerman Postdoc/Data/Extracted data 2018_02_07/Dual stim test';
+
+% responsiveness criteria
+whisk_resp_threshold                = 1.5; % response threshold in x increase from baseline/spontaneous (i.e. 2 = 2x spontaneous rate)
+LED_resp_threshold                  = 1.5; % response threshold in x increase from baseline/spontaneous (i.e. 2 = 2x spontaneous rate)
 
 %% Script parameters
 
-% responsiveness criteria
-whisk_resp_threshold          	= 1.5; % response threshold in x increase from baseline/spontaneous (i.e. 2 = 2x spontaneous rate)
-LED_resp_threshold              = 1.5; % response threshold in x increase from baseline/spontaneous (i.e. 2 = 2x spontaneous rate)
+% set general parameters for use in analyse_channels_function
+analysisparams.samplerate           = 30000;            % data sample rate in Hz
+analysisparams.profile_smoothing    = [0.02];           % size of gaussian window (in seconds) (span covers -3xSD to + 3xSD)
 
-% Parameters for analyse_sdata_function
-analysisparams.whiskwinedges    = [-0.5:0.001:12]; % in seconds
-analysisparams.LEDwin           = [0.005 0.030]; % in seconds
-analysisparams.whiskwin         = [0 0.040]; % in seconds
-analysisparams.LED_sust_win     = [0.100 0.400]; % in seconds
-analysisparams.LEDwinedges      = [-0.250:0.005:0.750]; % in seconds
-analysisparams.samplerate       = 30000; % in Hz
-analysisparams.profile_smoothing = [0.03]; % size of gaussian window (in seconds) (span covers -3xSD to + 3xSD)
+analysisparams.whiskwin             = [0 0.040];        % window for assessing LED response
+analysisparams.whiskwinedges        = [-1:0.001:3];     % histogram bin edges for whisker PSTH
+
+analysisparams.LEDwin               = [0.002 0.040];    % in seconds
+analysisparams.LED_sust_win         = [1 2]; % in seconds
+analysisparams.LEDwinedges          = [-0.250:0.001:3]; % in seconds
+
+% adjust individual parameters dependent on experiment_type
+switch experiment_type
+    case 'Frequency'
+        analysisparams.LED_sust_win         = [1 4];            % LED is on for longer, can take larger sample
+        analysisparams.whiskwinedges        = [-1:0.001:5];     % multiple whisks - needs PSTH with more time bins
+        analysisparams.LEDwinedges          = [-0.5:0.001:6];   % Longer LED stimulation needs PSTH with more time bins
+    case 'Drive'
+        % no adjustments needed from general settings?
+    case 'Timing'
+        analysisparams.LEDwin               = [0.002 0.025];    % LED pulse only lasts 25ms
+        analysisparams.LED_sust_win         = [0.002 0.025];    % no real sustained response here
+        analysisparams.LEDwinedges          = [-0.5:0.001:2];   % shorten PSTH
+    case 'Velocity'
+        analysisparams.whiskwin             = [0 1];            % slow whisks need longer time bin to capture peak response
+end
 
 %% Running code starts here
 
-date_folders = dir(sdata_folder);   % Get list of folders corresponding to the dates of experiments
-date_folders = date_folders(3:end); % Get rid of '.' and '..' folders
-
+date_folders            = dir(sdata_folder);   % Get list of folders corresponding to the dates of experiments
+date_folders            = date_folders([date_folders.isdir]);
+qremove                 = ismember({date_folders.name},{'.','..'});
+date_folders(qremove)   = [];
 % initialise 'sdata' struct
 sdata	= [];
 for a = 1:length(date_folders)
     
     % go to date folder and get file list
-    this_date_folder    = date_folders(a).name;
-    sdata_files         = dir([sdata_folder filesep this_date_folder]);
-    
-    % get rid of '.' and '..' directories
-    sdata_files         = sdata_files(3:end);
-    
-    % get file names
-    file_names          = {sdata_files.name};
-    
-    % Get rid of annoying '.DS_store' files that pop up everywhere
-    if any(strcmp(file_names,'.DS_Store'))
-        sdata_files     = sdata_files(~strcmp(file_names,'.DS_Store'));
-    end
+    this_date_folder        = date_folders(a).name;
+    sdata_files             = dir([sdata_folder filesep this_date_folder]);
+    sdata_files             = sdata_files(~[sdata_files.isdir]); % only look at files, not folders
+    qremove                 = ismember({sdata_files.name},{'.DS_Store'}); % get rid of annoying  '.DS_store' files
+    sdata_files(qremove)    = [];
+    file_names              = {sdata_files.name}; % get file names
     
     % loop over data files
     for b = 1:length(sdata_files)
         this_sdata_file = sdata_files(b).name;
         
-        % loads 'channels' and 'parameters' from saved data
-        load([sdata_folder filesep this_date_folder filesep this_sdata_file])        
-        disp([sdata_folder filesep this_date_folder filesep this_sdata_file])
+        full_channels_file      = [sdata_folder filesep this_date_folder filesep this_sdata_file];
+        
+        % load 'channels' and 'parameters' from saved data
+        load(full_channels_file)        
+        disp(['Loaded ' full_channels_file '...'])
         
         % Use analyse_channels_function to add PSTH data to 'channels'
         % struct
@@ -68,19 +85,18 @@ for a = 1:length(date_folders)
         condition_mat    	= cell2mat({channels(1).conditions.timings}');
         
         % store filename and the matrix of conditions in sdata.expt struct
-        sdata(a).expt(b).filename                 	= this_sdata_file;
+        sdata(a).expt(b).filename                 	= full_channels_file;
         sdata(a).expt(b).condition_mat             	= condition_mat;
         
         %% Start analysis by channel
         
-        for c = 1:length(select_channels)
-            this_channel                            = select_channels(c);
+        for c = 1:length(channels)
             
             % store current channel in temporary variable
-            temp_channel                            = channels(this_channel).conditions;
+            temp_channel                            = channels(c).conditions;
             
             % store spontaneous rate of this channel in sdata.expt struct
-            sdata(a).expt(b).spont_rate(c)         	= channels(this_channel).spontspikerate;
+            sdata(a).expt(b).spont_rate(c)         	= channels(c).spontspikerate;
             
             % transfer all PSTH type data to the sdata.expt struct
             sdata(a).expt(b).whiskwinedges          = analysisparams.whiskwinedges;
@@ -120,26 +136,7 @@ for a = 1:length(date_folders)
             sdata(a).expt(b).whisk_resp(:,c)        = [temp_channel.whisk_spike_rel]' > whisk_resp_threshold;
             sdata(a).expt(b).LED_resp(:,c)          = [temp_channel.LED_spike_rel]' > LED_resp_threshold;
             
-            % make big matrix of spike times to facilitate further analysis
-            % down the line (rasterplots etc):
-            
-            % loop over conditions
-            for d = 1:length(temp_channel)
-                temp_cond       = temp_channel(d);
-                
-                % loop over episodes
-                for e = 1:length(temp_cond.episodes)
-                    
-                    % put all spike data for this experiment in one big
-                    % matrix of spike times
-                    sdata(a).expt(b).all_spikes(d,c,e,1:length(temp_cond.episodes(e).spikes)) = temp_cond.episodes(e).spikes;
-                end
-            end
-            
-            % the matrix will have lots of empty points, by default these
-            % become zeros. Turn any value that is exactly zero into a NaN.
-            sdata(a).expt(b).all_spikes(sdata(a).expt(b).all_spikes == 0)  = NaN;
-            
         end
+        sdata(a).expt(b).whisk_profile          = sdata(a).expt(b).whisk_profile(:,:,1:30:end);
     end
 end
