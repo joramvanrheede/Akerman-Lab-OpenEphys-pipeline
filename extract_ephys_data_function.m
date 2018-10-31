@@ -1,4 +1,4 @@
-function [channels] = extract_ephys_data_function(datafolder,datafilenr,qspike_detection,parameters)
+function [ephys_data] = extract_ephys_data_function(datafolder,datafilenr,qspike_detection,parameters)
 
 data_prefix             = parameters.data_prefix;           % = '100';
 q_digital_events        = parameters.digital_events;        % 1/0% events determined using openephys event detection
@@ -20,13 +20,13 @@ qmorse                  = parameters.morse;                 % use trial start/en
 
 expt_type               = parameters.experiment_type;       % what type of experiment is this?
 
-%% relatively fixed variables
+get_channels            = parameters.get_channels;        	% which channels to get in which order?
 
-% IMPORTANT - this is the channel order for a 16-channel NeuroNexus probe
-% sent through the A16 --> Omnetics32 adapter and acquired with the openephys
-% headstage: [20 4 29 13 18 2 30 14 17 1 32 16 31 15 19 3]
-get_channels            = [20 4 29 13 18 2 30 14 17 1 32 16 31 15 19 3]; % IMPORTANT [20 4 29 13 18 2 30 14 17 1 32 16 31 15 19 3]
+get_LFP                 = parameters.get_LFP;
 
+data_output             = parameters.data_output;
+
+% Is this still needed?
 morse_start             = [3 1 3 1 3]; % morse code for start of trial; short = 1, long = 3;
 morse_stop              = [1 1 1 3 1 3]; % morse code for end of trial; short = 1, long = 3;
 
@@ -54,9 +54,6 @@ filefolder              = filefolders{fileind}; % this is the folder we're after
 
 %% Start collecting events data
 
-channels            = struct;   % initialise output variable
-cond_counters       = [];       % initialise counter per condition per channel;
-
 if q_digital_events % do we use digital events recorded by openephys? if so use 'all_channels.events' file
     [events timestamps info] = load_open_ephys_data([datafolder filesep filefolder filesep 'all_channels.events']);
     
@@ -78,14 +75,14 @@ if q_digital_events % do we use digital events recorded by openephys? if so use 
 else % events need to be extracted manually from the analog input signal. 
     
     if switch_input_nr ~= 0
-        trial_threshold     = 5/3; % For trial, signal goes up to 2.5V
-        stim_threshold      = (5/3) * 2; % For whisking (always during trial), signal goes up to 5V
-        LED_threshold       = 2.5; % normal TTL logic - 0 to 5V
+        trial_threshold     = 1.25; % For trial, signal goes up to 2.5V
+        stim_threshold      = 2.7; % For whisking (always during trial), signal goes up to 2.75 - 5V
+        LED_threshold       = 0.1; % normal TTL logic - 0 to 5V
         switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
     else
         trial_threshold     = 2.5; % normal TTL logic - 0 to 5V
         stim_threshold      = 2.5; % normal TTL logic - 0 to 5V
-        LED_threshold       = 2.5; % normal TTL logic - 0 to 5V
+        LED_threshold       = 0.1; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
         switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
     end
     
@@ -96,7 +93,10 @@ else % events need to be extracted manually from the analog input signal.
         
         if a == 1 || adc_channel_nrs(a) ~= adc_channel_nrs(a-1) % Don't reload data if trace is already loaded
             disp(['Loading ADC input channel ' num2str(adc_channel_nrs(a))])
+            disp(['File ' datafolder filesep filefolder filesep data_prefix '_ADC' num2str(adc_channel_nrs(a)) '.continuous'])
             [thisTTL timestamps info] = load_open_ephys_data([datafolder filesep filefolder filesep data_prefix '_ADC' num2str(adc_channel_nrs(a)) '.continuous']);
+            
+            % thisTTL         = thisTTL - min(thisTTL(:));
             
             starttime       = min(timestamps); % find start time
             timestamps      = (1:length(thisTTL)) / 30000; % manually create new timestamps at 30kHz, openephys sometimes suffers from timestamp wobble even though data acquisition is spot on
@@ -111,8 +111,10 @@ else % events need to be extracted manually from the analog input signal.
         start_times 	= timestamps(start_inds); % find the timestamps of start events
         end_times    	= timestamps(end_inds); % find the timestamps of end events
         
-        end_times(end_times < start_times(1))       = []; % discard potential initial end without start
-        start_times(start_times > end_times(end))   = []; % discard potential final start without end
+        if ~isempty(start_times) % Some channels may not have events (e.g. stim switch channel if only 1 stimulator used)
+            end_times(end_times < start_times(1))       = []; % discard potential initial end without start
+            start_times(start_times > end_times(end))   = []; % discard potential final start without end
+        end
         
         switch a % this determines what the start and end timestamps should be assigned to: trial/trial, LED/opto stim or stim/whisk stim.
             case 1
@@ -121,9 +123,22 @@ else % events need to be extracted manually from the analog input signal.
             case 2
                 stim_starts 	= start_times(:);
                 stim_ends     	= end_times(:);
+                
+                % Determine stimulus amplitude from signal 
+                stim_amps       = NaN(size(start_inds));
+                for i = 1:length(start_inds)
+                    stim_segment    = thisTTL(start_inds(i):end_inds(i));
+                    stim_amps(i)   	= ((median(stim_segment) - 2.5) / 2.5) * 100; % Stimulus amplitude in % of max
+                end
             case 3
                 LED_starts      = start_times(:);
                 LED_ends        = end_times(:);
+                
+                LED_powers      = NaN(size(start_inds));
+                for i = 1:length(start_inds)
+                    stim_segment    = thisTTL(start_inds(i):end_inds(i));
+                    LED_powers(i) 	= median(stim_segment) / 5 * 100; % Stimulus amplitude in % of max
+                end
             case 4
                 switch_up       = start_times(:);
                 switch_down     = end_times(:);
@@ -164,50 +179,20 @@ total_length 	= round(median(diff(trial_starts)),1);
 trial_start     = min(trial_starts(:));
 trial_end       = max(trial_ends(:));
 
-% ensure we only look for events happening during trials;
-% make sure all starts have matching ends and  vice versa
-LED_starts(LED_starts < trial_start)     	= [];
-LED_ends(LED_ends < trial_start)           	= [];
+%% At the end, simply chuck trials with no events in them?
+%% Allwhisks??
 
-stim_starts(stim_starts < trial_start)    	= [];
-stim_ends(stim_ends < trial_start)        	= [];
-
-LED_starts(LED_starts > trial_end)        	= [];
-LED_ends(LED_ends > trial_end)           	= [];
-
-stim_starts(stim_starts > trial_end)       	= [];
-stim_ends(stim_ends > trial_end)          	= [];
-
-stim_starts(stim_starts > max(stim_ends))	= [];
-stim_ends(stim_ends < min(stim_starts))   	= [];
-
-
-% more cleaning up; assuming similar trial durations, see if there are any
-% exceptionally long or short trials at the start or end (can happen
-% because of floating voltages on the arduino pins)
-qtrial2         = round(diff(trial_starts),1) == total_length; % compare 
-anomalind       = find(~qtrial2); % indices of anomalous lengths
-
-anomalearly    	= anomalind(anomalind < (.5 * length(trial_starts))); % find which anomalous indices are happenig early on in the trial sequence
-anomalate      	= anomalind(anomalind > (.5 * length(trial_starts))); % find which are happening late
-
-anomalate       = anomalate + 1;
-
-anomalous       = [anomalearly(:); anomalate(:)];
-
-trial_starts(anomalous)     = []; % remove anomalous trial starts
-trial_ends(anomalous)       = []; % remove anomalous trial ends
-
-% 
-allwhisks                   = stim_starts;
+allwhisks                   = stim_starts; % ?
 allwhisk_ends               = stim_ends;
-
 %% work out the velocity (length) of a whisk, and the frequency:
 
 % Find which whisking onsets are the first of a trial, and which onsets
 % are the last of a trial
 allwhisk_firstvect          = allwhisks(find(diff(allwhisks) > (trial_length/2))+1);
 allwhisk_lastvect           = allwhisks(find(diff(allwhisks) > (trial_length/2)));
+
+first_stim_amps             = stim_amps(find(diff(allwhisks) > (trial_length/2))+1);
+first_stim_amps             = [stim_amps(1); first_stim_amps(:)];
 
 whisk_starts            	= [allwhisks(1); allwhisk_firstvect(:)];
 whisk_lasts              	= [allwhisk_lastvect(:); allwhisks(end)];
@@ -232,123 +217,126 @@ for a = 1:length(whisk_starts)
     whisk_freqs(a)      = this_whisk_freq;
 end
 
-allwhisks                                       = whisk_starts;
+allwhisks                   = whisk_starts;
+stim_amps                   = first_stim_amps;
 
-allwhisks(allwhisks < min(trial_starts))      = [];
-allwhisks(allwhisks > max(trial_ends))        = [];
-whisk_freqs(allwhisks < min(trial_starts))    = [];
-whisk_freqs(allwhisks > max(trial_ends))      = [];
-whisk_lengths(allwhisks < min(trial_starts))  = [];
-whisk_lengths(allwhisks > max(trial_ends))    = [];
+%% Match events to trials
+ntrials                 = length(trial_starts);
 
-LED_starts(LED_starts < min(trial_starts))    = [];
-LED_starts(LED_starts > max(trial_ends))      = [];
-LED_ends(LED_ends < min(trial_starts))        = [];
-LED_ends(LED_ends > max(trial_ends))          = [];
+whisk_stim_onsets       = NaN(size(trial_starts));
+whisk_stim_lengths      = NaN(size(trial_starts));
+whisk_stim_freqs        = NaN(size(trial_starts));
+whisk_stim_relay        = NaN(size(trial_starts));
+whisk_stim_amplitudes   = NaN(size(trial_starts));
 
-%% fill in any missing trial start and end events
+LED_onsets              = NaN(size(trial_starts));
+LED_offsets             = NaN(size(trial_starts));
+LED_current_levels      = NaN(size(trial_starts));
 
-trial_interval      = median(diff(trial_starts));
-qtrialgap           = [0; diff(trial_starts) > trial_interval + 1];
-
-while any(qtrialgap)
-    trial_ind       = find(qtrialgap,1);
-    trial_starts  = [trial_starts(1:trial_ind-1); trial_starts(trial_ind-1)+trial_interval;  trial_starts(trial_ind:end)];
-    qtrialgap       = [0; diff(trial_starts) > trial_interval + 1];
-end
-
-qtrialgap = [0; diff(trial_ends) > trial_interval + 1];
-
-while any(qtrialgap)
-    trial_ind       = find(qtrialgap,1);
-    trial_ends    = [trial_ends(1:trial_ind-1); trial_ends(trial_ind-1)+trial_interval;  trial_ends(trial_ind:end)];
-    qtrialgap       = [0; diff(trial_ends) > trial_interval + 1];
-end
-
-%% Check for trials without corresponding events and remove
-
-% find the nr of trials
-ntrials         = length(trial_starts);
-
-% Check for trials without corresponding events
-for j = 1:length(trial_starts)
-    this_start  = trial_starts(j);
-    this_end    = trial_ends(j);
+for a = 1:ntrials
+    this_trial_start    = trial_starts(a);
+    this_trial_end      = trial_ends(a);
     
-    qLEDstart  	= any(LED_starts > this_start & LED_starts < this_end);
-    qwhisk      = any(allwhisks > this_start & allwhisks < this_end);
+    % see whether there was a whisker stimulus
+	select_whisk_start 	= whisk_starts >= this_trial_start & whisk_starts <= this_trial_end;
     
-    if ~qLEDstart & ~qwhisk
-        trial_starts(j)   = NaN;
-        trial_ends(j)     = NaN;
-        warning(['No LED or whisker stim found on trial ' num2str(j)])
+    if sum(select_whisk_start) == 1
+        whisk_stim_onsets(a)        = allwhisks(select_whisk_start);
+        whisk_stim_lengths(a)       = whisk_lengths(select_whisk_start);
+        whisk_stim_freqs(a)         = whisk_freqs(select_whisk_start);
+        whisk_stim_amplitudes(a)    = stim_amps(select_whisk_start);
+        
+        % Determine which stimulator is being used (relay up = stim 2, relay down = stim 1)
+        stim_start_mat_temp         = repmat(whisk_stim_onsets(a),size(switch_up));
+        is_switch_up               	= stim_start_mat_temp > switch_up & stim_start_mat_temp < switch_down;
+        
+        if any(is_switch_up)
+            whisk_stim_relay(a)     = 2;
+        else
+            whisk_stim_relay(a)     = 1;
+        end
+    elseif sum(select_whisk_start) > 1
+        error('Multiple whisker stimulus values found for this trial')
     end
-    if ~qLEDstart & qwhisk
-        allwhisks(j)        = NaN;
-        whisk_freqs(j)      = NaN;
-        whisk_lengths(j)    = NaN;
-        trial_starts(j)   = NaN;
-        trial_ends(j)     = NaN;
-        warning(['No LED found on trial ' num2str(j)])
+    
+    % see whether there was an LED on / offset here
+    select_LED_start   	= LED_starts >= this_trial_start & LED_starts <= this_trial_end;
+    select_LED_end      = LED_ends >= this_trial_start & LED_ends <= this_trial_end;
+    
+    if sum(select_LED_start) == 1 && sum(select_LED_end) == 1
+        LED_onsets(a)           = LED_starts(select_LED_start);
+        LED_offsets(a)          = LED_ends(select_LED_end);
+        LED_current_levels(a)   = LED_powers(select_LED_start);
+    elseif sum(select_LED_start) > 1 || sum(select_LED_end) > 1
+        error('Multiple LED stimulus values found for this trial')
+    elseif sum(select_LED_start) ~= sum(select_LED_end)
+        error('Mismatch in number of detected LED onsets and offsets for this trial')
     end
-    if qLEDstart & ~qwhisk
-        trial_starts(j)   = NaN;
-        trial_ends(j)     = NaN;
-        LED_starts(j)       = NaN;
-        LED_ends(j)         = NaN;
-        warning(['No whisker stim found on trial ' num2str(j)])
-    end
+    
 end
 
-allwhisks(isnan(allwhisks))             = [];
-whisk_freqs(isnan(whisk_freqs))         = [];
-whisk_lengths(isnan(whisk_lengths))     = [];
-trial_starts(isnan(trial_starts))       = [];
-trial_ends(isnan(trial_ends))           = [];
-LED_starts(isnan(LED_starts))           = [];
-LED_ends(isnan(LED_ends))               = [];
+LED_starts      = LED_onsets;
+LED_ends        = LED_offsets;
+allwhisks       = whisk_stim_onsets;
+whisk_freqs     = whisk_stim_freqs;
+whisk_lengths   = whisk_stim_lengths;
+stim_amps       = whisk_stim_amplitudes;
+LED_powers      = LED_current_levels;
+
+%% 
 
 switch expt_type % for each experiment, make sure not to split conditions by other conditions - NEEDS WORK
     case 'Timing'
         median_whisk_length     = nanmedian(whisk_lengths);
         whisk_lengths          	= repmat(median_whisk_length,size(whisk_lengths));
     case 'Velocity'
-        binvec          = [0:0.0001:2];
-        [pks, locs]     = findpeaks(smooth(histc(whisk_lengths,binvec),3),'MinPeakHeight',3);
-        length_vals     = binvec(locs);
-        whisk_lengths   = interp1(length_vals,length_vals,whisk_lengths,'nearest','extrap');
+        binvec                  = [0:0.0001:2];
+        [pks, locs]             = findpeaks(smooth(histc(whisk_lengths,binvec),3),'MinPeakHeight',3);
+        length_vals             = binvec(locs);
+        whisk_lengths           = interp1(length_vals,length_vals,whisk_lengths,'nearest','extrap');
     case 'Drive'
         median_whisk_length     = nanmedian(whisk_lengths);
         whisk_lengths         	= repmat(median_whisk_length,size(whisk_lengths));
     case 'Frequency'
         median_whisk_length     = nanmedian(whisk_lengths);
         whisk_lengths         	= repmat(median_whisk_length,size(whisk_lengths));
+    case 'Amplitude'
+    	median_whisk_length     = nanmedian(whisk_lengths);
+        whisk_lengths         	= repmat(median_whisk_length,size(whisk_lengths));
+    case 'LED_power'
+        median_whisk_length     = nanmedian(whisk_lengths);
+        whisk_lengths         	= repmat(median_whisk_length,size(whisk_lengths));
+    otherwise
+        median_whisk_length     = nanmedian(whisk_lengths);
+        whisk_lengths         	= repmat(median_whisk_length,size(whisk_lengths));
 end
 
+stim_amps   = round(stim_amps / 5) * 5; % round to nearest 5%
+LED_powers  = round(LED_powers / 5) * 5; % round to nearest 5%
 
 %% Done with clean-up and event extraction; now determine the different conditions
 
-% Which stimulator was used?
-
-stim_nr                     = ones(size(trial_starts)); % initialise stimulator nr to '1' for all trials
-[vals,up_stim_trials,ib]    = intersect(trial_starts, switch_up); % find instances of the stim switch going up at the same time as trial starts - those are the trials where stimulator 2 is being used
-stim_nr(up_stim_trials)     = 2; % set those instances to stimulator 2
-
 % recover LED delays
-LED_delays      = round((LED_starts(:) - trial_starts(:)) / LED_conditions_res,3) * LED_conditions_res;
+LED_delays                  = round((LED_starts(:) - trial_starts(:)) / LED_conditions_res,3) * LED_conditions_res;
 
 % recover whisking delays
-whisk_delays    = round((allwhisks(:) - trial_starts(:)) / whisk_conditions_res,3) * whisk_conditions_res;
+whisk_delays                = round((allwhisks(:) - trial_starts(:)) / whisk_conditions_res,3) * whisk_conditions_res;
 
 % recover LED durations
-LED_ontimes     = LED_ends - LED_starts;
-LED_durations   = round(LED_ontimes(:) / 5,3) * 5;
+LED_ontimes                 = LED_ends - LED_starts;
+LED_durations               = round(LED_ontimes(:) / 5,3) * 5;
 
 % reconstruct trial matrix
-trial_timings   = [LED_delays(:) whisk_delays(:) LED_durations(:) whisk_freqs(:) round(1./whisk_lengths(:)) stim_nr(:)];
+trial_conditions         	= [LED_delays(:) whisk_delays(:) LED_durations(:) whisk_freqs(:) round(1./whisk_lengths(:)) whisk_stim_relay(:) stim_amps(:) LED_powers(:)];
+
+condition_headers           = {'LED start time' 'Whisk start time' 'LED duration' 'Whisk frequency' 'Whisk velocity' 'Whisk stim number' 'Whisk amplitude' 'LED Power'};
+
+trial_conditions(isnan(trial_conditions)) = 999; % pass numerical flag for missing values / absent stimuli, 'unique' doesn't work well with NaNs (NaN ~= NaN)
 
 % extract different conditions from trial matrix
-[conditions, cond_inds, cond_vect]   = unique(trial_timings,'rows');
+[conditions, cond_inds, cond_vect]  = unique(trial_conditions,'rows');
+
+conditions(conditions == 999)       = NaN; % replace flag with NaN again so it is clear which stimuli are absent for certain conditions
 
 if q_override
     conditions  = zeros(n_conds,5);
@@ -357,41 +345,45 @@ end
 
 cond_nrs        = 1:size(conditions,1);
 
-if isempty(cond_counters)
-    cond_counters   = zeros(size(conditions,1),n_channels);
-end
-
-for a = 1:n_channels
-    for b = 1:max(cond_nrs)
-        channels(a).conditions(b).timings = conditions(b,:);
-    end
-end
-
 %% Get trace data (filter for spikes using 300 - 6000 Hz bandpass; can get LFP filtering e.g. with a 1-300Hz pass)
 % initialise butterworth bandpass filter
-[filt_b,filt_a]           = butter(2, [300 6000]/(30000/2));
+samplefreq = 30000;
 
-if qspike_detection % 'manual' spike detection in matlab
+[filt_b,filt_a]           = butter(2, [500 6000]/(samplefreq/2));
+
+[LFPfilt_b, LFPfilt_a]    = butter(2, [1 300]/(samplefreq/2));
+LFPtraces       = [];
+LFPtimestamps  	= [];
+
+if qspike_detection || get_LFP % 'manual' spike detection in matlab
 
     for a = 1:n_channels
         disp(['Loading channel ' num2str(a)]);
         [thistrace timestamps info] = load_open_ephys_data([datafolder filesep filefolder filesep data_prefix '_CH' num2str(get_channels(a)) '.continuous']);
         
-        starttime          	= min(timestamps);
+        starttime          	= min(timestamps); % get original offset
         
-        timestamps          = ((1:length(thistrace)) / 30000); % generate timestamps
+        timestamps          = ((1:length(thistrace)) / 30000); % generate timestamps (openephys output t)
         
         % Do simple homebrew spike detection by 1) filtering with bandpass, 2) smoothing and 3) thresholding
-        thistrace           = filter(filt_b,filt_a,thistrace); % filter data with butterworth bandpass filter to get spike traces
-        thistrace           = smooth(thistrace, spike_smoothwin); % smooth data with
+        spiketrace        	= filter(filt_b,filt_a,thistrace); % filter data with butterworth bandpass filter to get spike traces
+        spiketrace        	= smooth(spiketrace, spike_smoothwin); % smooth data with
         
-        q_threshold         = thistrace > (spike_thresh * std(thistrace)); % determine standard deviation to determine threshold
+        q_threshold         = (-spiketrace) > (spike_thresh * std(spiketrace)); % determine standard deviation to determine threshold, detect threshold crossings (negative)
         spike_bool          = diff(q_threshold) == 1; % Determine instances of threshold being crossed 
         these_spike_times 	= timestamps(spike_bool); % Get the timestamps of these instances
         
-        spikes(a).times     = these_spike_times + starttime; % 
+        spikes(a).times     = these_spike_times + starttime; % put original offset back
         spikes(a).waveforms = [];
         spikes(a).info      = [];
+        
+        if get_LFP
+            LFPtrace        = filter(LFPfilt_b,LFPfilt_a,thistrace);
+            LFPtrace        = LFPtrace(1:30:end); % resample at 1000Hz
+            LFPtimestamps   = timestamps(1:30:end)+ starttime; % resample to 1000Hz
+            
+            LFPtraces       = [LFPtraces LFPtrace(:)];
+        end
     end
 else  % use spikes detected from openephys .spikes file instead
     spikes  = []; % initialise spikes. Will become a 1xmaxchannelnr struct
@@ -410,23 +402,92 @@ end
 
 
 %% Sort spikes by trial and condition
+
+cond_counters   = zeros(size(conditions,1),n_channels);
+channels        = struct;   % initialise output variable
+
 for a = 1:n_channels
-    
-    chan_spike_times    = [];
-    for b = 1:length(trial_starts)
-        qspiketimes                 = (spikes(a).times >= trial_starts(b)) & (spikes(a).times < trial_ends(b));
-        thesespiketimes             = spikes(a).times(qspiketimes);
-        thesespiketimes             = thesespiketimes - trial_starts(b);
+    for b = 1:max(cond_nrs)
+        channels(a).conditions(b).timings = conditions(b,:);
+    end
+end
+
+
+if strcmpi(data_output,'old')
+    for a = 1:n_channels
+        chan_spike_times    = [];
+        for b = 1:length(trial_starts)
+            qspiketimes                 = spikes(a).times >= trial_starts(b) & spikes(a).times < trial_ends(b);
+            thesespiketimes             = spikes(a).times(qspiketimes);
+            thesespiketimes             = thesespiketimes - trial_starts(b);
+            
+            thiscond                    = cond_vect(b);
+            cond_counters(thiscond,a)   = cond_counters(thiscond,a) + 1;
+            
+            channels(a).conditions(thiscond).episodes(cond_counters(thiscond,a)).spikes  = thesespiketimes(:);
+            chan_spike_times            = [chan_spike_times; thesespiketimes(:)];
+            
+            % LFP processing. Is it better to simply do this by condition, and
+            % then have a matrix of data x episodes x data length?
+            if get_LFP
+                qLFPtimestamps          = LFPtimestamps >= trial_starts(b) & LFPtimestamps < trial_ends(b);
+                channels(a).conditions(thiscond).episodes(cond_counters(thiscond,a)).LFP_trace = LFPtraces(qLFPtimestamps,a);
+            end
+        end
         
-        thiscond                    = cond_vect(b);
-        cond_counters(thiscond,a)   = cond_counters(thiscond,a) + 1;
+        %% spont spike rate
+        spontspikes     = chan_spike_times(chan_spike_times >= (spontwin(1) / 1000) & chan_spike_times < (spontwin(2) / 1000));
+        spontwinsize    = (spontwin(2) - spontwin(1)) / 1000;           % size of window in seconds
+        channels(a).spontspikerate   = length(spontspikes) / spontwinsize / ntrials; % spontaneous spike rate by channel
         
-        channels(a).conditions(thiscond).episodes(cond_counters(thiscond,a)).spikes  = thesespiketimes(:);
-        chan_spike_times            = [chan_spike_times; thesespiketimes(:)];
+    end
+    ephys_data = channels;
+elseif strcmpi(data_output,'new')
+    for a = 1:n_channels
+        for b = 1:length(trial_starts)
+            qspiketimes                 = spikes(a).times >= trial_starts(b) & spikes(a).times < trial_ends(b);
+            thesespiketimes             = spikes(a).times(qspiketimes);
+            thesespiketimes             = thesespiketimes - trial_starts(b);
+            
+            thiscond                    = cond_vect(b);
+            cond_counters(thiscond,a)   = cond_counters(thiscond,a) + 1;
+            
+            ephys_data.conditions(thiscond).spikes(a,cond_counters(thiscond,a),1:length(thesespiketimes(:)))  = thesespiketimes(:);
+            
+            % LFP processing. Is it better to simply do this by condition, and
+            % then have a matrix of data x episodes x data length?
+            if get_LFP
+                qLFPtimestamps              = LFPtimestamps >= trial_starts(b) & LFPtimestamps < trial_ends(b);
+                ephys_data.conditions(thiscond).LFP_trace(a,cond_counters(thiscond,a),1:length(LFPtraces(qLFPtimestamps,a))) = LFPtraces(qLFPtimestamps,a);
+                ephys_data.LFP_timestamps   = 1:sum(qLFPtimestamps) / 30000;
+            end
+        end
     end
     
-    %% spont spike rate
-    spontspikes     = chan_spike_times(chan_spike_times >= (spontwin(1) / 1000) & chan_spike_times < (spontwin(2) / 1000));
-    spontwinsize    = (spontwin(2) - spontwin(1)) / 1000;           % size of window in seconds
-    channels(a).spontspikerate   = length(spontspikes) / spontwinsize / ntrials; % spontaneous spike rate by channel
+    for i = 1:length(ephys_data.conditions)
+        ephys_data.conditions(i).values             = conditions(i,:);
+        ephys_data.conditions(i).n_trials           = size(ephys_data.conditions(i).spikes,2);
+        ephys_data.conditions(i).whisk_onset        = conditions(i,2);
+        ephys_data.conditions(i).whisk_stimulator 	= conditions(i,6);
+        ephys_data.conditions(i).whisk_amplitude    = conditions(i,7);
+        ephys_data.conditions(i).whisk_velocity     = conditions(i,5);
+        ephys_data.conditions(i).whisk_frequency    = conditions(i,4);
+        ephys_data.conditions(i).LED_onset          = conditions(i,1);
+        ephys_data.conditions(i).LED_power          = conditions(i,8);
+        ephys_data.conditions(i).LED_duration       = conditions(i,3);
+        ephys_data.conditions(i).spikes(ephys_data.conditions(i).spikes == 0) = NaN;
+    end
+    
+    ephys_data.condition_values     = conditions;
+    ephys_data.condition_names      = condition_headers;
+    ephys_data.trial_length         = trial_length;
+    ephys_data.trial_interval       = total_length;
+    ephys_data.block_length         = total_length * length(ephys_data.conditions);
+    ephys_data.protocol_duration    = total_length * length(trial_starts);
+    ephys_data.parameters           = parameters;
+    ephys_data.data_folder          = filefolder;
+else
+    error('Unrecognised ''data_output'' requested, available options are ''old'' and ''new''')
 end
+
+

@@ -1,20 +1,28 @@
 %% 
 
 
-metadata_file       = '/Users/Joram/Dropbox/Akerman Postdoc/Data/in vivo metadata/Metadata File.xlsx'; % Which metadata file to use?
+metadata_file       = '/Volumes/PS2Akermanlab/Joram/Data/in vivo metadata/Metadata File.xlsx'; % Which metadata file to use?
 
-data_folder         = '/Users/Joram/Documents/In vivo data'%'/Volumes/Akermanlab-1/Joram/In vivo mouse data'; % Where are the data? 
+data_folder         = '/Volumes/Akermanlab/Joram/In_vivo_mouse_data';   %'/Volumes/Akermanlab-1/Joram/In vivo mouse data'; % Where are the data? 
 
-save_folder         = '/Users/Joram/Documents/Extracted data'%'/Volumes/Akermanlab-1/Joram/Extracted data'; % Where to save output?
+save_folder         = '/Volumes/Akermanlab/Joram/LTPtest';  %/Volumes/Akermanlab-1/Joram/Extracted data'; % Where to save output?
 
-start_date          = '2018_04_23'; % format: 'yyyy_mm_dd'; Process files from this date onwards
-end_date            = '2019_10_10'; % format: 'yyyy_mm_dd'; Process files up until this date
+start_date          = '2018_10_30';     % format: 'yyyy_mm_dd'; Process files from this date onwards
+end_date            = '2018_10_30';     % format: 'yyyy_mm_dd'; Process files up until this date
 
-process_expts       = {'All'}; % indicate which experiment types to run, e.g.: {'Drive', 'Timing'}, or use {'All'}
+process_expts       = {'All'};          % indicate which experiment types to run, e.g.: {'Drive', 'Timing'}, or use {'All'}
+
+get_LFP             = true;             % get LFP traces? This does increase output data size
+
+data_output         = 'old';            % 'new': improved data structure, or 'old': 'channels' style data structure
 
 %% global analysis parameters
 
 q_spike_detection   = 1;      % do spike detection, or use detected spikes from openephys?
+
+% set this up for differen probe types:
+channel_order_16ch  = [20 4 29 13 18 2 30 14 17 1 32 16 31 15 19 3]; % 16ch linear silicon A16 probe neuronexus: [20 4 29 13 18 2 30 14 17 1 32 16 31 15 19 3]
+channel_order_32ch  = [16 32 1 17 14 30 3 19 8 24 7 29 9 25 15 20 10 23 2 28 6 26 5 21 11 31 4 27 12 22 13 18]; % 32Ch linear A32 probe neuronexus [18 2 31 15 19 3 30 14 17 1 32 16 24 8 25 9 23 7 26 10 22 6 27 11 21 5 28 12 20 4 29 13];
 
 %% running code starts here
 
@@ -39,6 +47,7 @@ ID_col          = find(strcmpi('Animal ID',headers)); % Animal ID (Sanger system
 type_col        = find(strcmpi('Animal type',headers)); % EG 'IUE ChR2-YFP-ON' or 'CAMKII-GCAMP Transgenic'
 age_col         = find(strcmpi('Age (w)',headers)); % Age of animal in weeks
 
+probe_col       = find(strcmpi('Probe type',headers));
 pen_col         = find(strcmpi('Penetration nr',headers)); % Penetration number (for this animal)
 caud_col        = find(strcmpi('Caudal',headers)); % Caudal position (mm)
 lat_col         = find(strcmpi('Lateral',headers)); % Lateral position (mm)
@@ -102,6 +111,7 @@ for a = 1:size(metadata,1)
     % Extract other relevant data
     this_ID         = metadata{a,ID_col};
     this_type       = metadata{a,type_col};
+    this_probe      = metadata{a,probe_col};
     this_age        = metadata{a,age_col};
     this_pen        = metadata{a,pen_col};
     this_caud       = metadata{a,caud_col};
@@ -114,11 +124,21 @@ for a = 1:size(metadata,1)
     this_stim       = metadata{a,stim_col};
     this_whisk      = metadata{a,whisk_col};
     
+    switch this_probe
+        case '16ch'
+            parameters.get_channels         = channel_order_16ch;
+        case '32ch'
+            parameters.get_channels         = channel_order_32ch;
+    end
+    
     % all variables that are only relevant in the 'parameters' struct for
     % extract_ephys_data_function can go directly into the struct
+    
     parameters.digital_events     	= metadata{a,dig_events_col};
     parameters.data_prefix         	= metadata{a,prefix_col};
     parameters.channelmap         	= metadata{a,chanmap_col};
+    parameters.get_LFP              = get_LFP;
+    
     parameters.spike_thresh        	= metadata{a,spkthresh_col};
     parameters.spike_smoothwin    	= metadata{a,smoothw_col};
     parameters.LED_conditions_res	= metadata{a,LED_res_col};
@@ -138,6 +158,8 @@ for a = 1:size(metadata,1)
     parameters.animal_type          = metadata(a,type_col);
     parameters.target_whisker       = this_whisk;
     
+    parameters.data_output          = data_output;
+    
     %% time to extract the data
     this_data_folder                = [data_folder filesep this_date];
     
@@ -145,7 +167,7 @@ for a = 1:size(metadata,1)
     % continue even if there is an error with one particular data file
     try 
         % data extraction function (where it all really happens)
-        channels                        = extract_ephys_data_function(this_data_folder, this_file, q_spike_detection, parameters);
+        ephys_data              	= extract_ephys_data_function(this_data_folder, this_file, q_spike_detection, parameters);
     catch
         % Report any errors in processing
         warning(['Error processing file ' this_data_folder ' #' num2str(this_file) ])
@@ -170,6 +192,6 @@ for a = 1:size(metadata,1)
     end
     
     % save channels struct in a folder 
-    save([this_save_folder filesep this_save_file_name],'channels','parameters')
+    save([this_save_folder filesep this_save_file_name],'ephys_data')
     
 end
