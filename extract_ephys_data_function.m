@@ -498,6 +498,7 @@ elseif strcmpi(data_output,'new')
     ephys_data.protocol_duration    = total_length * length(trial_starts);
     ephys_data.parameters           = parameters;
     ephys_data.data_folder          = filefolder;
+    ephys_data.channelmap           = get_channels;
 else
     error('Unrecognised ''data_output'' requested, available options are ''old'' and ''new''')
 end
