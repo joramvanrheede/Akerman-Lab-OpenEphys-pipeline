@@ -22,9 +22,9 @@ expt_type               = parameters.experiment_type;       % what type of exper
 
 get_channels            = parameters.get_channels;        	% which channels to get in which order?
 
-get_LFP                 = parameters.get_LFP;
+get_LFP                 = parameters.get_LFP;               % get LFP data?
 
-data_output             = parameters.data_output;
+data_output             = parameters.data_output;           % data output type; new 'ephys_data' or 'channels'-type - 
 
 % Is this still needed?
 morse_start             = [3 1 3 1 3]; % morse code for start of trial; short = 1, long = 3;
@@ -181,6 +181,12 @@ trial_end       = max(trial_ends(:));
 
 %% At the end, simply chuck trials with no events in them?
 %% Allwhisks??
+
+if isempty(stim_starts)
+    stim_starts = [0 0.02];
+    stim_ends   = [0.01 00.03]; % set some fake whisk stimuli outside of the trials
+    stim_amps   = [1 1];
+end
 
 allwhisks                   = stim_starts; % ?
 allwhisk_ends               = stim_ends;
@@ -424,7 +430,10 @@ if strcmpi(data_output,'old')
             thiscond                    = cond_vect(b);
             cond_counters(thiscond,a)   = cond_counters(thiscond,a) + 1;
             
-            channels(a).conditions(thiscond).episodes(cond_counters(thiscond,a)).spikes  = thesespiketimes(:);
+            channels(a).conditions(thiscond).episodes(cond_counters(thiscond,a)).spikes         = thesespiketimes(:);
+            channels(a).conditions(thiscond).episodes(cond_counters(thiscond,a)).trial_start    = trial_starts(b);
+            channels(a).conditions(thiscond).episodes(cond_counters(thiscond,a)).trial_end      = trial_ends(b);
+            
             chan_spike_times            = [chan_spike_times; thesespiketimes(:)];
             
             % LFP processing. Is it better to simply do this by condition, and
@@ -453,6 +462,9 @@ elseif strcmpi(data_output,'new')
             cond_counters(thiscond,a)   = cond_counters(thiscond,a) + 1;
             
             ephys_data.conditions(thiscond).spikes(a,cond_counters(thiscond,a),1:length(thesespiketimes(:)))  = thesespiketimes(:);
+            ephys_data.conditions(thiscond).trial_starts(a,cond_counters(thiscond,a))   = trial_starts(b);
+            ephys_data.conditions(thiscond).trial_ends(a,cond_counters(thiscond,a))     = trial_ends(b);
+            
             
             % LFP processing. Is it better to simply do this by condition, and
             % then have a matrix of data x episodes x data length?
@@ -475,7 +487,7 @@ elseif strcmpi(data_output,'new')
         ephys_data.conditions(i).LED_onset          = conditions(i,1);
         ephys_data.conditions(i).LED_power          = conditions(i,8);
         ephys_data.conditions(i).LED_duration       = conditions(i,3);
-        ephys_data.conditions(i).spikes(ephys_data.conditions(i).spikes == 0) = NaN;
+        ephys_data.conditions(i).spikes(ephys_data.conditions(i).spikes == 0) = NaN; % replace empty values for spike matrix (default to 0) with NaN
     end
     
     ephys_data.condition_values     = conditions;

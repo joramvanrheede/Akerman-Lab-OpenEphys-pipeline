@@ -1,26 +1,24 @@
 %% 
 
-
 metadata_file       = '/Volumes/PS2Akermanlab/Joram/Data/in vivo metadata/Metadata File.xlsx'; % Which metadata file to use?
 
 data_folder         = '/Volumes/Akermanlab/Joram/In_vivo_mouse_data';   %'/Volumes/Akermanlab-1/Joram/In vivo mouse data'; % Where are the data? 
 
-save_folder         = '/Volumes/Akermanlab/Joram/LTPtest';  %/Volumes/Akermanlab-1/Joram/Extracted data'; % Where to save output?
+save_folder         = '/Volumes/Akermanlab/Joram/Dysrhythmia';  %/Volumes/Akermanlab-1/Joram/Extracted data'; % Where to save output?
 
-start_date          = '2018_10_30';     % format: 'yyyy_mm_dd'; Process files from this date onwards
-end_date            = '2018_10_30';     % format: 'yyyy_mm_dd'; Process files up until this date
+start_date          = '2019_01_24';     % format: 'yyyy_mm_dd'; Process files from this date onwards
+end_date            = '2019_01_24';     % format: 'yyyy_mm_dd'; Process files up until this date
 
 process_expts       = {'All'};          % indicate which experiment types to run, e.g.: {'Drive', 'Timing'}, or use {'All'}
 
 get_LFP             = true;             % get LFP traces? This does increase output data size
 
-data_output         = 'old';            % 'new': improved data structure, or 'old': 'channels' style data structure
-
+data_output         = 'new';            % 'new': improved data structure, or 'old': 'channels' style data structure do
 %% global analysis parameters
 
 q_spike_detection   = 1;      % do spike detection, or use detected spikes from openephys?
 
-% set this up for differen probe types:
+% set this up for different probe types:
 channel_order_16ch  = [20 4 29 13 18 2 30 14 17 1 32 16 31 15 19 3]; % 16ch linear silicon A16 probe neuronexus: [20 4 29 13 18 2 30 14 17 1 32 16 31 15 19 3]
 channel_order_32ch  = [16 32 1 17 14 30 3 19 8 24 7 29 9 25 15 20 10 23 2 28 6 26 5 21 11 31 4 27 12 22 13 18]; % 32Ch linear A32 probe neuronexus [18 2 31 15 19 3 30 14 17 1 32 16 24 8 25 9 23 7 26 10 22 6 27 11 21 5 28 12 20 4 29 13];
 
@@ -138,6 +136,7 @@ for a = 1:size(metadata,1)
     parameters.data_prefix         	= metadata{a,prefix_col};
     parameters.channelmap         	= metadata{a,chanmap_col};
     parameters.get_LFP              = get_LFP;
+    parameters.LED_power            = this_LEDpw;
     
     parameters.spike_thresh        	= metadata{a,spkthresh_col};
     parameters.spike_smoothwin    	= metadata{a,smoothw_col};
