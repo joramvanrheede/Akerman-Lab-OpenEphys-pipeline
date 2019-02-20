@@ -26,6 +26,9 @@ get_LFP                 = parameters.get_LFP;               % get LFP data?
 
 data_output             = parameters.data_output;           % data output type; new 'ephys_data' or 'channels'-type - 
 
+trials_from_whisk       = parameters.trials_from_whisk;     % discard trial information from ADC channels and determine trials based on whisker instead?
+whisk_buffer            = parameters.whisk_buffer;          % if using whisk stim to divide recording into trials (above), trials start whisk_buffer (in seconds) before the whisker stim onset, and end 2*whisk buffer after whisker stim ONSET
+
 % Is this still needed?
 morse_start             = [3 1 3 1 3]; % morse code for start of trial; short = 1, long = 3;
 morse_stop              = [1 1 1 3 1 3]; % morse code for end of trial; short = 1, long = 3;
@@ -75,12 +78,12 @@ if q_digital_events % do we use digital events recorded by openephys? if so use 
 else % events need to be extracted manually from the analog input signal. 
     
     if switch_input_nr ~= 0
-        trial_threshold     = 1.25; % For trial, signal goes up to 2.5V
+        trial_threshold     = 0.25; % For trial, signal goes up to 2.5V or less
         stim_threshold      = 2.7; % For whisking (always during trial), signal goes up to 2.75 - 5V
         LED_threshold       = 0.1; % normal TTL logic - 0 to 5V
         switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
     else
-        trial_threshold     = 2.5; % normal TTL logic - 0 to 5V
+        trial_threshold     = 0.25; % normal TTL logic - 0 to 5V
         stim_threshold      = 2.5; % normal TTL logic - 0 to 5V
         LED_threshold       = 0.1; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
         switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
@@ -160,6 +163,26 @@ if qmorse
 end
 
 %% A lot of cleanup and repair from here
+
+
+if trials_from_whisk
+    trial_starts    = [];
+    trial_counter   = 1;
+    for a = 1:length(stim_starts)
+        this_stim_start = stim_starts(a);
+        if a == 1
+            trial_starts(trial_counter) = this_stim_start - whisk_buffer;
+            trial_counter   = trial_counter + 1;
+            continue
+        elseif (stim_starts(a) - whisk_buffer) <= stim_starts(a-1)
+            continue
+        elseif (stim_starts(a) - whisk_buffer) > stim_starts(a-1)
+            trial_starts(trial_counter) = this_stim_start - whisk_buffer;
+            trial_counter = trial_counter + 1;
+        end
+    end
+    trial_ends = trial_starts + 2 * whisk_buffer;
+end
 
 % determine median trial length
 trial_times     = trial_ends - trial_starts;
@@ -462,9 +485,12 @@ elseif strcmpi(data_output,'new')
             cond_counters(thiscond,a)   = cond_counters(thiscond,a) + 1;
             
             ephys_data.conditions(thiscond).spikes(a,cond_counters(thiscond,a),1:length(thesespiketimes(:)))  = thesespiketimes(:);
-            ephys_data.conditions(thiscond).trial_starts(a,cond_counters(thiscond,a))   = trial_starts(b);
-            ephys_data.conditions(thiscond).trial_ends(a,cond_counters(thiscond,a))     = trial_ends(b);
             
+            % add trial time data
+            if a == 1
+                ephys_data.conditions(thiscond).trial_starts(cond_counters(thiscond,a))   = trial_starts(b);
+                ephys_data.conditions(thiscond).trial_ends(cond_counters(thiscond,a))     = trial_ends(b);
+            end
             
             % LFP processing. Is it better to simply do this by condition, and
             % then have a matrix of data x episodes x data length?
@@ -499,6 +525,7 @@ elseif strcmpi(data_output,'new')
     ephys_data.parameters           = parameters;
     ephys_data.data_folder          = filefolder;
     ephys_data.channelmap           = get_channels;
+    ephys_data.start_time           = starttime;
 else
     error('Unrecognised ''data_output'' requested, available options are ''old'' and ''new''')
 end
