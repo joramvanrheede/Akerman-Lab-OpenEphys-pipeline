@@ -16,9 +16,9 @@ for a = 1:length(ephys_data.conditions)
 
     these_spikes        = ephys_data.conditions(a).spikes;
     
-    trial_psths         = histc(these_spikes,hist_edges,3);
-    trial_rate_psths    = trial_psths / hist_binsize;
-    expt_psths          = squeeze(mean(trial_psths,2));
+    trial_psths         = histc(these_spikes,hist_edges,3); % histogram counts
+    trial_rate_psths    = trial_psths / hist_binsize;       % convert to rate per time bin
+    expt_psths          = squeeze(mean(trial_psths,2));     % mean per trial
     expt_rate_psths     = expt_psths / hist_binsize;
     
     these_LFPs          = ephys_data.conditions(a).LFP_trace;
@@ -60,6 +60,9 @@ for a = 1:length(ephys_data.conditions)
     n_episodes                  = size(ephys_data.conditions(1).spikes,2);
     spike_rate_profile          = spike_rate_profile * samplerate / n_episodes;
     
+    [spike_rate_max, maxinds]   = max(spike_rate_profile, [],2);
+    peak_rate_time              = spike_rate_bins(maxinds);
+    
     %% put the psth / mean / spike rate data back in the ephys_data struct
     ephys_data.conditions(a).psth_bins          = hist_edges;
     ephys_data.conditions(a).trial_psths        = trial_psths;
@@ -69,6 +72,8 @@ for a = 1:length(ephys_data.conditions)
     ephys_data.conditions(a).expt_LFPs          = expt_LFPs;
     ephys_data.conditions(a).spike_rate_times   = spike_rate_bins;
     ephys_data.conditions(a).spike_rate_profile = spike_rate_profile;
+    ephys_data.conditions(a).spike_rate_max     = spike_rate_max;
+    ephys_data.conditions(a).peak_rate_time     = peak_rate_time;
 end
 
 
