@@ -488,8 +488,10 @@ elseif strcmpi(data_output,'new')
             
             % add trial time data
             if a == 1
-                ephys_data.conditions(thiscond).trial_starts(cond_counters(thiscond,a))   = trial_starts(b);
-                ephys_data.conditions(thiscond).trial_ends(cond_counters(thiscond,a))     = trial_ends(b);
+                ephys_data.conditions(thiscond).trial_starts_timestamps(cond_counters(thiscond,a))	= trial_starts(b);
+                ephys_data.conditions(thiscond).trial_ends_timestamps(cond_counters(thiscond,a))   	= trial_ends(b);
+                ephys_data.conditions(thiscond).trial_starts(cond_counters(thiscond,a))             = trial_starts(b) - starttime;
+                ephys_data.conditions(thiscond).trial_ends(cond_counters(thiscond,a))               = trial_ends(b) - starttime;
             end
             
             % LFP processing. Is it better to simply do this by condition, and
