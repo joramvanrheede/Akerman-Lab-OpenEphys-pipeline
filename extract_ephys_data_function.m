@@ -315,26 +315,11 @@ LED_powers      = LED_current_levels;
 %% 
 
 switch expt_type % for each experiment, make sure not to split conditions by other conditions - NEEDS WORK
-    case 'Timing'
-        median_whisk_length     = nanmedian(whisk_lengths);
-        whisk_lengths          	= repmat(median_whisk_length,size(whisk_lengths));
     case 'Velocity'
         binvec                  = [0:0.0001:2];
         [pks, locs]             = findpeaks(smooth(histc(whisk_lengths,binvec),3),'MinPeakHeight',3);
         length_vals             = binvec(locs);
         whisk_lengths           = interp1(length_vals,length_vals,whisk_lengths,'nearest','extrap');
-    case 'Drive'
-        median_whisk_length     = nanmedian(whisk_lengths);
-        whisk_lengths         	= repmat(median_whisk_length,size(whisk_lengths));
-    case 'Frequency'
-        median_whisk_length     = nanmedian(whisk_lengths);
-        whisk_lengths         	= repmat(median_whisk_length,size(whisk_lengths));
-    case 'Amplitude'
-    	median_whisk_length     = nanmedian(whisk_lengths);
-        whisk_lengths         	= repmat(median_whisk_length,size(whisk_lengths));
-    case 'LED_power'
-        median_whisk_length     = nanmedian(whisk_lengths);
-        whisk_lengths         	= repmat(median_whisk_length,size(whisk_lengths));
     otherwise
         median_whisk_length     = nanmedian(whisk_lengths);
         whisk_lengths         	= repmat(median_whisk_length,size(whisk_lengths));
