@@ -3,7 +3,7 @@ function concatenate_continuous_as_dat(filename,data_dirs,n_channels)
 % 
 % Takes openephys .continuous data folders specified in DATA_DIRS and
 % concatenates them into a single .dat file with filename specified in
-% filename. 
+% FILENAME.
 % 
 % FILENAME      = full file name (including path and '.dat' extension) of the .dat file to write to
 % DATA_DIRS 	= cell array of openephys data directories to be concatenated
@@ -15,12 +15,14 @@ function concatenate_continuous_as_dat(filename,data_dirs,n_channels)
 n_data_sets     = length(data_dirs);
 
 % Open new .dat file for writing
-fidout      = fopen(filename, 'w');
+fidout          = fopen(filename, 'w');
 
 % loop over number of openephys data sets to be concatenated
 for a = 1:n_data_sets
     
-    % Get full filenames of all 
+    disp(['Processing data folder ' data_dirs{a} '...'])
+    
+    % Get full filenames of .continuous files for each channel
     clear fs
     for j = 1:n_channels
         fs{j} = dir(fullfile(data_dirs{a}, sprintf('*CH%d.continuous', j) ));
@@ -38,7 +40,9 @@ for a = 1:n_data_sets
     fid = cell(n_channels, 1); % one file identifier per channel
     
     for k = 1:nBlocks
+        
         for j = 1:n_channels
+            % open .continuous file for this channel
             fid{j}             = fopen(fullfile(data_dirs{a}, fs{j}(k).name));
             % skip header information
             fseek(fid{j}, 1024, 0);
@@ -80,4 +84,4 @@ for a = 1:n_data_sets
     end
 end
 
-fclose(fidout); % close file here
+fclose(fidout); % close .dat file here
