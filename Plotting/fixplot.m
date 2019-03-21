@@ -1,4 +1,6 @@
 function fixplot
-% quick aesthetics for matlab plots
+% quick aesthetics fix for matlab plots
 
-set(gca,'LineWidth',2,'FontSize',16,'FontName','Helvetica','FontWeight','Bold')
+set(gca,'LineWidth',2,'FontSize',16,'FontName','Helvetica','FontWeight','Bold','TickDir','out','box','off')
+
+
