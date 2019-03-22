@@ -1,4 +1,4 @@
-function plothandle = beeswarmplot(indata,groups,labels,colours)
+function beeswarmplot(indata,groups,labels,colours)
 % function plothandle = beeswarmplot(INDATA,GROUPS,LABELS,COLOURS)
 % 
 % INDATA: vector of input data pounts
