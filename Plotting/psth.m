@@ -32,12 +32,12 @@ spike_times     = spike_times(:);
 
 % Let input variables determine how to run histcounts:
 if ~exist('psth_win','var') && ~exist('bin_size','var')
-    % Use histcounts built in best bin size and bin limits
+    % Use histcounts built in best bin size and bin limits set by the range of the data
 	[counts binedges]	= histcounts(spike_times);
     psth_win            = [min(binedges) max(binedges)];
     bin_size            = binedges(2) - binedges(1);
 elseif exist('bin_size','var') && ~exist('psth_win','var')
-    % Use histcounts built in best bin limits but use user specified bin size
+    % Use bin limits determined by the range of the data but use user specified bin size
 	[counts binedges]	= histcounts(spike_times,'BinWidth',bin_size);
     psth_win            = [min(binedges) max(binedges)];
 elseif exist('bin_size','var') && isempty(bin_size) && exist('psth_win','var')
@@ -47,7 +47,7 @@ elseif exist('bin_size','var') && isempty(bin_size) && exist('psth_win','var')
     bin_size            = binedges(2) - binedges(1);
 else
     % Use user-specified bin size and psth_win
-    binedges            = (psth_win(1):bin_size:psth_win(2)); % set bin edges for psth counts
+    binedges            = (psth_win(1):bin_size:psth_win(2));
     counts              = histcounts(spike_times,binedges);
 end
 
