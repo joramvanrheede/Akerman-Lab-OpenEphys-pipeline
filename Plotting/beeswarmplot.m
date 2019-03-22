@@ -8,7 +8,7 @@ function beeswarmplot(indata,groups,labels,colours)
 % RGB specification
 
 % Some constants that govern the size of the spread of the dots
-dotwidth            = 1/3;
+dotspread       	= 1/3;
 meanwidth           = 1/3;
 
 % Find number of unique groups
@@ -49,13 +49,16 @@ for b = 1:length(groupids)
     xvals           = NaN(size(thiscol));
     for a = 1:length(counts)
         
-        nevents             = counts(a); % How many data points are we dealing with in this y space
+        nevents             = counts(a); % How many data points are we dealing with in this y space?
         
-        locations           = linspace(-1,1,nevents + 2); % generate
-        locations           = locations(2:end-1);
+        % generate evenly spaced points based on nevents and dotspread
+        locations           = linspace(-1,1,nevents + 2); 
+        locations           = locations(2:end-1); 
         
-        locations           = locations * dotwidth;
+        locations           = locations * dotspread;
         
+        % find data points that fall within this bin and set their x
+        % position in the dot cloud (xvals)
         datainds            = find(bins == a);
         
         for c = 1:length(datainds)
@@ -74,12 +77,12 @@ for b = 1:length(groupids)
     % Plot median line
     line([(xshift - meanwidth) (xshift + meanwidth) ], [nanmedian(thiscol) nanmedian(thiscol)],'LineWidth',3,'Color',[0 0 0])
     
-    % Set sensible x extent for axes
-    xlim([0 length(groupids)+1])
-    
 end
 
+% Set sensible extent for x-axis
 xlim([0 length(groupids)+1])
+
+% Add group labels to x-axis
 set(gca,'XTick',1:length(groupids),'XTicklabel',labels)
 
 hold off
