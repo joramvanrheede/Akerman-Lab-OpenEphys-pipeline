@@ -1,92 +1,85 @@
-function plothandle = beeswarmplot(indata,groups,labels,yaxislabel)
-% function plothandle = beeswarmplot(indata,groups,labels,yaxislabel)
+function plothandle = beeswarmplot(indata,groups,labels,colours)
+% function plothandle = beeswarmplot(INDATA,GROUPS,LABELS,COLOURS)
 % 
+% INDATA: vector of input data pounts
+% GROUPS: vector of same length as INDATA, indicating group membership
+% LABELS: Optional group labels (default is 'Group 1', 'Group 2', etc)
+% COLOURS: Optional colour specification for each group, as an N GROUPS * 3
+% RGB specification
 
-% make histogram of data
-% 1: determine right bin size of histogram (max 5-8 data points per bin)
-% 
-% make histogram, 
-% determine where in histogram each data point falls
-% for each bin in the histogram, determine optimal spreading
-% e.g. 2 data points: 0/1, 1/1, 3 data points: 0/1, .5/1, 1/1
-% 
-
-% locat
-% testn = 50;
-% 
-% randdata        = rand(testn,100);
-% indata          = mean(randdata,2)
-% indata          = rand(testn,1) .* rand(testn,1) + rand(testn,1) %./ rand(100,1);
-% labels              = {'group1' 'group2'}
-%
-
-figure
+% Some constants that govern the size of the spread of the dots
 dotwidth            = 1/3;
 meanwidth           = 1/3;
 
-xincrement          = 1;
-xshift              = 0;
+% Find number of unique groups
 groupids            = unique(groups);
+
+% Set default labels
+if ~exist('labels','var') || isempty(labels)
+    for a = 1:length(groupids)
+        labels{a} = ['Group ' num2str(groupids(a))];
+    end
+end
+
+% Set default colours
+if ~exist('colours','var')
+    colours = lines;
+end
+
+% Open main figure for plotting
+fig_handle = figure;
+
+xshift              = 0;
 for b = 1:length(groupids)
-    b
+
     % shift beeswarm along X axis 
-    xshift          = xshift + xincrement;
+    xshift          = xshift + 1;
     
-    % find data column
+    % select data for this group
     thiscol         = indata(groups == groupids(b));
     
     % determine a sensible number of bins for the data
     nbins           = ceil(range(thiscol)/serr(thiscol))/2;
     
-    % 
+    % count number of data points that fall within these bins to determine
+    % spread of points at this location
     [counts, bins]  = histc(thiscol,linspace(min(thiscol),max(thiscol),nbins));
     
+    % start generating x values for points
     xvals           = NaN(size(thiscol));
-    
     for a = 1:length(counts)
         
-        nevents             = counts(a);
+        nevents             = counts(a); % How many data points are we dealing with in this y space
         
-        locations           = linspace(-1,1,nevents + 2);
+        locations           = linspace(-1,1,nevents + 2); % generate
         locations           = locations(2:end-1);
         
         locations           = locations * dotwidth;
         
         datainds            = find(bins == a);
         
-        for b = 1:length(datainds)
+        for c = 1:length(datainds)
             xvals(datainds)     = locations;
         end
     end
     
+    % Shift x values according to the group
     xvals       = xvals + xshift;
-
-    plothandle  = plot(xvals,thiscol,'ko','MarkerSize',8,'MarkerEdgeColor',[0 0 0], 'MarkerFaceColor', [.5 .5 .5]);
+    
+    % Use plot function to plot the points
+    plothandle  = plot(xvals,thiscol,'ko','MarkerSize',8,'MarkerEdgeColor',[0 0 0], 'MarkerFaceColor', colours(b,:));
     
     hold on
     
+    % Plot median line
     line([(xshift - meanwidth) (xshift + meanwidth) ], [nanmedian(thiscol) nanmedian(thiscol)],'LineWidth',3,'Color',[0 0 0])
     
-    xshift+xincrement
-    
+    % Set sensible x extent for axes
     xlim([0 length(groupids)+1])
-    
-    scf
     
 end
 
 xlim([0 length(groupids)+1])
-set(gca,'XTick',1)
-set(gca,'XTicklabel',{'' labels{:} ''})
-set(gca,'FontName','Helvetica','FontSize',16,'FontWeight','bold')
-set(gca,'LineWidth',2)
-ylabel(yaxislabel)
-set(gca,'FontName','Helvetica','FontSize',16,'FontWeight','bold')
-xlabel('Group')
-set(gca,'FontName','Helvetica','FontSize',16,'FontWeight','bold')
-
-
-
-
+set(gca,'XTick',1:length(groupids),'XTicklabel',labels)
 
 hold off
