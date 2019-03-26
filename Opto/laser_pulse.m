@@ -1,7 +1,20 @@
 % Laser_Pulse analysis
 
+% Where are the preprocessed data?
+% AVK:
+% POM
+% /Volumes/Akermanlab/Joram/AVK RBSN rAAV PoM/Laser_pulse/2018_12_03
+% 
+% 
+% S1
+% /Volumes/Akermanlab/Joram/AVK RBSN rAAV cS1/Laser_pulse/2019_02_07_P1 --> nothing
+% /Volumes/Akermanlab/Joram/AVK RBSN rAAV cS1/Laser_pulse/2019_02_07_P2 --> barely anything
+% 
+% 
+% 
 
-data_dir        = '/Volumes/Akermanlab/Joram/RJB/Laser_Pulse/2019_01_24';
+
+data_dir        = '/Volumes/Akermanlab/Joram/AVK RBSN rAAV PoM/Laser_pulse/2018_12_03';
 
 % data_file       = ['2019_01_22-16-Laser_pulse'];
 
@@ -10,12 +23,18 @@ data_dir        = '/Volumes/Akermanlab/Joram/RJB/Laser_Pulse/2019_01_24';
 hist_binsize    = [0.001];
 rate_window     = [0.020];
 
-resp_win        = [0.003 0.500];
+resp_win        = [0.0035 0.020]; % [0.001 0.003];
 spont_win       = [0 .9];
 
-smoothwin       = 5;
+plot_win        = [-0.1 0.2];
+
+smoothwin       = 1;
 
 qreload         = 1;
+
+%% 
+close all
+
 
 if qreload
     
@@ -23,7 +42,7 @@ if qreload
     
     laser_power     = [];
     laser_psth      = [];
-    for a = 1%1:length(folder_files)
+    for a = 1:length(folder_files)
         
         this_file       = folder_files(a).name;
         full_filenm     = fullfile(data_dir, this_file);
@@ -73,22 +92,22 @@ for b = 1:n_powers
 end
 
 % plot all psths
-plot(psth_bins,mean_psth_by_power','LineWidth',2)
+figure
+plot(psth_bins,mean_psth_by_power')
 title('PSTH of spikes following 3ms LASER pulse')
 xlabel('Post-pulse Time (s)')
 ylabel('Spike count in time bin')
-set(gca,'FontName','Helvetica','FontSize',14)
-
-
+set(gca,'LineWidth',2,'FontSize',16,'FontName','Helvetica','FontWeight','Bold','TickDir','out','box','off')
+xlim(plot_win)
 
 
 %legend(mat2cell(uniq_powers));
 
 figure
-plot(uniq_powers,spike_sum_by_power - spont_sum_by_power,'k.-','LineWidth',2,'MarkerSize',20)
-title('LASER Power setting vs binned spiking response','FontName','Helvetica','FontSize',20)
-xlabel('LASER Power setting','FontName','Helvetica','FontSize',16)
-ylabel('Spiking response','FontName','Helvetica','FontSize',16)
-set(gca,'FontName','Helvetica','FontSize',14)
+plot(uniq_powers,spike_sum_by_power - spont_sum_by_power,'k.-','MarkerSize',20)
+title('LASER Power setting vs binned spiking response')
+xlabel('LASER Power setting')
+ylabel('Spiking response')
+set(gca,'LineWidth',2,'FontSize',16,'FontName','Helvetica','FontWeight','Bold','TickDir','out','box','off')
 
 
