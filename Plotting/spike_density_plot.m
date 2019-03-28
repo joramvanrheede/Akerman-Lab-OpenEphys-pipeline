@@ -71,6 +71,9 @@ end
 % Display the count data as an image
 image_handle    = imagesc(count_data);
 
+% Do plot aesthetics BEFORE changing tick labels (font size change will change the number of ticks and mess up labeling)
+set(gca,'LineWidth',2,'FontSize',16,'FontName','Helvetica','FontWeight','Bold','TickDir','out','box','off')
+
 % X axis tick labels will currently label the pixel nr in the image
 x_tick_labels   = xticklabels;
 
