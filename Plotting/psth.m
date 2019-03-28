@@ -1,5 +1,5 @@
-function [psth_handle counts binedges] = psth(spike_times,bin_size,psth_win)
-% function [PSTH_HANDLE COUNTS BINEDGES] = psth(SPIKE_TIMES,BIN_SIZE,PSTH_WIN)
+function [psth_handle, counts, binedges] = psth(spike_times,bin_size,psth_win,show_plot)
+% function [PSTH_HANDLE COUNTS BINEDGES] = psth(SPIKE_TIMES,BIN_SIZE,PSTH_WIN,SHOW_PLOT)
 % 
 % Makes post-stimulus time histogram of (spike) time data in SPIKE_TIMES.
 % Each data point in SPIKE_TIMES is a spike time (NaNs are ignored).
@@ -8,13 +8,20 @@ function [psth_handle counts binedges] = psth(spike_times,bin_size,psth_win)
 % as a 1D vector.
 % 
 % BIN_SIZE specifies the width of the bins in the PSTH in the same units as
-% spike_times (e.g. seconds, milliseconds, etc).
+% spike_times (e.g. seconds, milliseconds, etc). If not provided or left 
+% empty this will be decided from the density of the data.
 % 
 % PSTH_WIN is a 2-element vector [TMIN TMAX] that specifies the time range 
 % over which the PSTH is plotted, e.g. if SPIKE_TIMES includes spike times 
 % over a 10 second period, but PSTH_WIN is [0 1], only spike times over the
-% first second are included in the PSTH.
+% first second are included in the PSTH. If left blank this will be
+% decided by the min and the max of the data.
 %
+% SHOW_PLOT is a boolean variable (0/1 or true/false) that indicates whether
+% to plot the count data as a bar histogram or not. Default is true; set to
+% false / 0 if you only need the counts but don't want to plot the figure.
+% 
+% 
 % PSTH_HANDLE is a handle to the bar graph object that is used to plot the
 % PSTH - this means that it will have the same properties as any matlab bar
 % graph created with the 'bar' function, which can be modified for
@@ -26,6 +33,10 @@ function [psth_handle counts binedges] = psth(spike_times,bin_size,psth_win)
 % 
 % Joram van Rheede 22/03/2019
 
+% Default: plot the PSTH as a bar graph
+if nargin < 4
+	show_plot   = true;
+end
 
 % Vectorise spike_times into an N spikes x 1 vector
 spike_times     = spike_times(:);
@@ -51,14 +62,19 @@ else
     counts              = histcounts(spike_times,binedges);
 end
 
-% Plot the histogram using Matlab's bar function; offset binedges by .5
-% binsize so that the edge of the first bar starts at 0, set colour to
-% black, and set bar width to 1 so there are no gaps between bars
-psth_handle     = bar(binedges(1:end-1)+0.5*bin_size,counts,'FaceColor',[0 0 0],'EdgeColor',[0 0 0],'BarWidth',1); % plot the spike counts vs time bins
+% If requested, make plot
+if show_plot
+    % Plot the histogram using Matlab's bar function; offset binedges by .5
+    % binsize so that the edge of the first bar starts at 0, set colour to
+    % black, and set bar width to 1 so there are no gaps between bars
+    psth_handle     = bar(binedges(1:end-1)+0.5*bin_size,counts,'FaceColor',[0 0 0],'EdgeColor',[0 0 0],'BarWidth',1); % plot the spike counts vs time bins
+    % Tighten the x-axis around the bar plot
+    xlim(psth_win)
+    
+    % Basic labels for axes
+    xlabel('Time')
+    ylabel('Spike count')
+else
+    psth_handle     = [];
+end
 
-% Tighten the x-axis around the bar plot
-xlim(psth_win)
-
-% Basic labels for axes
-xlabel('Time')
-ylabel('Spike count')
