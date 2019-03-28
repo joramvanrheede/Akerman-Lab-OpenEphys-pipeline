@@ -22,26 +22,39 @@
 % '/Volumes/Akermanlab/Joram/RJB/Test_post_1/2019_02_11/2019_02_11-2-Test_post_1.mat'
 % '/Volumes/Akermanlab/Joram/RJB/Test_post_seizure/2019_02_11/2019_02_11-5-Test_post_seizure.mat'
 
+%% AVK Laser pulse:
+%% rAAV PoM
+% '/Volumes/Akermanlab/Joram/AVK RBSN rAAV PoM/Laser_pulse/2019_02_15/2019_02_15-15-Laser_pulse.mat'
+% '/Volumes/Akermanlab/Joram/AVK RBSN rAAV PoM/Laser_pulse/2018_12_03/2018_12_03-16-Laser_Power.mat' --> good
+% 
+
+%% rAAV cS1
+% 
+
+%% rAAV M1
+% '/Volumes/Akermanlab/Joram/AVK RBSN rAAV M1/Laser_pulse/2019_01_22/2019_01_22-8-Laser_pulse.mat'
+
+
 %% User set variables:
 
-data_file       = '/Volumes/Akermanlab/Joram/Cortex_20x100Hz_Plasticity/Test_1_pre_0/2019_02_04/2019_02_04-3-Test_1_pre_0.mat';
+data_file       = '/Volumes/Akermanlab/Joram/AVK RBSN rAAV PoM/Laser_pulse/2019_02_15/2019_02_15-15-Laser_pulse.mat';
 
 condition_nr    = 1; % Which condition nr to make plots for? Use 1 for data with only a single condition
 
-split_rows      = 'trials'; % 'trials' or 'channels'. 'Trials' has one row for each trial and averages over channels, 'Channels' does vice versa
+split_rows      = 'channels'; % 'trials' or 'channels'. 'Trials' has one row for each trial and averages over channels, 'Channels' does vice versa
 
 channels        = [1:32]; % Which channels to include
 trials          = [1:30]; % Which trial numbers to include
 
-psth_win        = [-0.1 0.2]; % sets x-axis values for all plots
+psth_win        = [-1 2]; % sets x-axis values for all plots
 psth_offset     = 1; % set this time to zero (e.g. stimulus time)
-binsize         = [0.001]; % bin size for psth
+binsize         = [0.005]; % bin size for psth
 
-fig_title       = 'Whisker stimulation';
+fig_title       = 'Opto stimulation';
 
 
 %% Shaded regions in graphs?
-do_shade1       = true;
+do_shade1       = false;
 shade1_colour   = 'r';
 shade1_alpha    = 0.5;
 shade1_xvals    = [0 0.005];
@@ -60,9 +73,9 @@ offset_val      = 0.0002; % value for offset
 
 
 %% Saving options
-save_fig    = true;
-save_dir    = '/Users/Joram/Dropbox/Akerman Postdoc/Figures/RJB/';
-fig_format  = '-depsc'; % '-depsc' for vector graphics or '-dpng' for png image file
+save_fig        = false;
+save_dir        = '/Users/Joram/Dropbox/Akerman Postdoc/Figures/AVK/';
+fig_format      = '-depsc'; % '-depsc' for vector graphics or '-dpng' for png image file
 
 %% Axis labels; Y-axis for raster is given by split_rows
 
@@ -107,11 +120,11 @@ switch split_rows
         y_ax_label  = 'Channels';
 end
 
-%%
+%% Rasterplot
 
 figure(1)
 
-rasterplot_joram(spikes(channels,trials,:)-psth_offset,split_dim);
+raster_plot(spikes(channels,trials,:)-psth_offset,split_dim);
 xlim(psth_win)
 title([fig_title ' raster plot'])
 ylabel(y_ax_label)
@@ -134,10 +147,8 @@ end
 figure(2)
 
 target_spikes 	= spikes(channels,trials,:); % get relevant spikes
-psth_bins     	= (psth_win(1):binsize:psth_win(2)); % set bin edges for psth counts
-psth_counts    	= histc(target_spikes(:)-psth_offset,psth_bins); % count spikes within bins
 
-bar(psth_bins,psth_counts,'FaceColor',[0 0 0],'EdgeColor',[0 0 0]) % plot the spike counts vs time bins
+psth(target_spikes - psth_offset,binsize,psth_win)
 
 % plot aesthetics:
 xlim(psth_win);
