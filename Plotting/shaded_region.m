@@ -32,7 +32,7 @@ if ~ishold
     hold on
     set_hold_off    = true;
 else
-    set_hold_of     = false;
+    set_hold_off    = false;
 end
     
 % Get the values for the top and bottom of y-axis which will determine the
