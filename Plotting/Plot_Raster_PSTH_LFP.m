@@ -1,84 +1,67 @@
-
-
-%% Pre stim examples: 
-% '/Volumes/Akermanlab/Joram/Cortex_20x100Hz_Plasticity/Test_1_pre_0/2019_02_04/2019_02_04-3-Test_1_pre_0.mat'
-
-%% RWS 100Hz examples: 
-% '/Volumes/Akermanlab/Joram/Cortex_20x100Hz_Plasticity/RWS_1/2019_02_12/2019_02_12-2-RWS_1.mat'
-
-%% RWS 8Hz examples: 
-% '/Volumes/Akermanlab/Joram/Plasticity_8Hz_PW/RWS_1/2019_03_09/2019_03_09-4-RWS_1.mat'
-% '/Volumes/Akermanlab/Joram/Plasticity_8Hz_PW/RWS_1/2019_03_10/2019_03_10-3-RWS_1.mat'
-
-%% VPM examples:
-% '/Volumes/Akermanlab/Joram/Thalamus/RWS_1/2019_01_30/2019_01_30-2-RWS_1.mat'
-
-%% PoM examples: 
-% '/Volumes/Akermanlab/Joram/Thalamus/RWS_1/2019_01_26/2019_01_26-6-RWS_1.mat'
-
-%% RJB PV-Cre
-% '/Volumes/Akermanlab/Joram/RJB/Laser_pulse/2019_01_24/2019_01_24-1-Laser_pulse.mat'
-% '/Volumes/Akermanlab/Joram/RJB/Drive/2019_01_24/2019_01_24-2-Drive.mat'
-% '/Volumes/Akermanlab/Joram/RJB/Test_post_1/2019_02_11/2019_02_11-2-Test_post_1.mat'
-% '/Volumes/Akermanlab/Joram/RJB/Test_post_seizure/2019_02_11/2019_02_11-5-Test_post_seizure.mat'
-
-%% AVK Laser pulse:
-%% rAAV PoM
-% '/Volumes/Akermanlab/Joram/AVK RBSN rAAV PoM/Laser_pulse/2019_02_15/2019_02_15-15-Laser_pulse.mat'
-% '/Volumes/Akermanlab/Joram/AVK RBSN rAAV PoM/Laser_pulse/2018_12_03/2018_12_03-16-Laser_Power.mat' --> good
+% Plot_Raster_PSTH_LFP
 % 
-
-%% rAAV cS1
+% This script will generate a number of plots for inspecting your data.
+% For a single condition in ephys_data, it will generate a raster plot (by
+% layer or by trial), a post-stimulus time histogram, an LFP plot (again, by 
+% layer or by trial) and an overall LFP trace.
 % 
-
-%% rAAV M1
-% '/Volumes/Akermanlab/Joram/AVK RBSN rAAV M1/Laser_pulse/2019_01_22/2019_01_22-8-Laser_pulse.mat'
-
+% You need to set a number of variables at the top of the script before it
+% will run.
+% 
+% Suggested use: When you want to make figures for a particular experiment,
+% copy this script to an ad hoc folder and change the variables as needed.
+% 
 
 %% User set variables:
 
-data_file       = '/Volumes/Akermanlab/Joram/AVK RBSN rAAV PoM/Laser_pulse/2019_02_15/2019_02_15-15-Laser_pulse.mat';
+%% Change these variables for every experiment:
+data_file       = 'Full/Path/To/Processed/Data_file.mat'; % Full path to data file, preprocessed into trial-synchronised spike time data using ephys_metadata_reader
+fig_title       = 'Experiment title here'; % This sets the title of the figures - NOTE: also used for the filename of saved figures
 
-condition_nr    = 1; % Which condition nr to make plots for? Use 1 for data with only a single condition
+% This determines the selection of your data:
+condition_nr    = 1;        % Which condition nr to make plots for? Use 1 for data with only a single condition
+channels        = [1:32];   % Which channels to include
+trials          = [1:10];   % Which trial numbers to include. Use a single trial to plot a 'canonical' raster plot
+
+% How much of the data to show and what time bins to use?
+psth_win        = [-.5 1];  % sets x-axis values for all plots
+psth_offset     = 1;        % set this time to zero (e.g. stimulus time)
+binsize         = [0.005];  % bin size for psth
+
+
+%% Change the following variables as necessary:
 
 split_rows      = 'channels'; % 'trials' or 'channels'. 'Trials' has one row for each trial and averages over channels, 'Channels' does vice versa
 
-channels        = [1:32]; % Which channels to include
-trials          = [1:30]; % Which trial numbers to include
-
-psth_win        = [-1 2]; % sets x-axis values for all plots
-psth_offset     = 1; % set this time to zero (e.g. stimulus time)
-binsize         = [0.005]; % bin size for psth
-
-fig_title       = 'Opto stimulation';
+% Saving options for output figures (Note - will overwrite files of the same name if script is re-run) 
+save_fig        = false;
+save_dir        = 'Path/To/Figure/Saving/Directory';
+fig_format      = '-depsc'; % '-depsc' for vector graphics or '-dpng' for png image file
 
 
-%% Shaded regions in graphs?
-do_shade1       = false;
+% Shaded regions in graphs? Currently 2 shades are supported but it should be obvious
+% from this script how to add additional shaded regions if required:
+
+do_shade1       = false;    % 
 shade1_colour   = 'r';
 shade1_alpha    = 0.5;
-shade1_xvals    = [0 0.005];
+shade1_xvals    = [0 0.005]; % time window for shaded region 1
 
 do_shade2       = false;
 shade2_colour   = 'r';
 shade2_alpha    = 0.7;
-shade2_xvals    = [0 0.005];
-
-%% 
-RWS_continuous 	= false; % for continuous RWS where data are stored as a single very long trial; this triggers the generation of a number of 'sweeps' to show multiple repeats of a continuously repeating stimulus on the same row
-n_reps          = 8; % for repeating stimuli, how many repeats to show in one 'sweep'
-do_offset_corr  = false; % if there is an accumulating offset between repeats this allows for correction
-offset_val      = 0.0002; % value for offset
+shade2_xvals    = [0 0.005]; % time window for shaded region 2
 
 
+% Only for continuous RWS where data are stored as a single very long trial; 
+% this triggers the generation of a number of 'sweeps' to show multiple 
+% repeats of a continuously repeating stimulus on the same row
+RWS_continuous 	= false;    % leave to false unless the above is true
+n_reps          = 8;        % for repeating stimuli, how many repeats to show in one 'sweep'
+do_offset_corr  = false;    % if there is an accumulating offset between repeats this allows for correction
+offset_val      = 0.0002;   % value for offset (correcting for drift caused by bug in PulsePal protocol)
 
-%% Saving options
-save_fig        = false;
-save_dir        = '/Users/Joram/Dropbox/Akerman Postdoc/Figures/AVK/';
-fig_format      = '-depsc'; % '-depsc' for vector graphics or '-dpng' for png image file
-
-%% Axis labels; Y-axis for raster is given by split_rows
-
+% Axis labels; Y-axis for raster is given by split_rows
 x_ax_label  = 'Time (s)';
 
 %% Code execution starts here
@@ -87,14 +70,14 @@ close all
 
 load(data_file); % This loads 'ephys_data' struct
 
-spikes      = ephys_data.conditions(condition_nr).spikes; % get spikes from the relevant condition
+spikes  = ephys_data.conditions(condition_nr).spikes; % get spikes from the relevant condition
 
 %% new for continuous 8Hz RWS - generate a number of fake 'sweeps' to show repetitive nature of stimulus
 if RWS_continuous
     
     if do_offset_corr
         for a = 1:size(spikes,2)
-            spikes(:,a,:) = spikes(:,a,:) - offset_val*a; % offset correction
+            spikes(:,a,:) = spikes(:,a,:) - offset_val*a; % offset correction for repeated whisks within same trial (due to bug in PulsePal protocol)
         end
     end
     
@@ -129,7 +112,7 @@ xlim(psth_win)
 title([fig_title ' raster plot'])
 ylabel(y_ax_label)
 xlabel(x_ax_label)
-set(gca,'LineWidth',2,'FontSize',16,'FontName','Helvetica','FontWeight','Bold')
+fixplot
 
 if do_shade1
     shaded_region(shade1_xvals, shade1_colour, shade1_alpha);
@@ -153,9 +136,7 @@ psth(target_spikes - psth_offset,binsize,psth_win)
 % plot aesthetics:
 xlim(psth_win);
 title([fig_title ' PSTH'])
-xlabel('Post-stimulus time (s)')
-ylabel('Spike count')
-set(gca,'LineWidth',2,'FontSize',16,'FontName','Helvetica','FontWeight','Bold')
+fixplot
 
 if do_shade1
     shaded_region(shade1_xvals, shade1_colour, shade1_alpha);
