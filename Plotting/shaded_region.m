@@ -30,7 +30,9 @@ end
 % Check if 'hold on' is true for current graph
 if ~ishold
     hold on
-    set_hold_off = true;
+    set_hold_off    = true;
+else
+    set_hold_of     = false;
 end
     
 % Get the values for the top and bottom of y-axis which will determine the
