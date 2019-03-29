@@ -22,7 +22,7 @@ fig_title       = 'Experiment title here'; % This sets the title of the figures 
 % This determines the selection of data to show:
 condition_nr    = 1;        % Which condition nr to make plots for? Use 1 for data with only a single condition
 channels        = [1:32];   % Which channels to include
-trials          = [1:5];   % Which trial numbers to include. Use a single trial to plot a 'canonical' raster plot
+trials          = [1:30];   % Which trial numbers to include. Use a single trial to plot a 'canonical' raster plot
 
 % How much of the data to show and what time bins to use?
 psth_win        = [-.2 .3];  % sets x-axis values for all plots
@@ -35,7 +35,7 @@ binsize         = [0.005];  % bin size for psth
 split_rows      = 'channels'; % 'trials' or 'channels'. 'Trials' has one row for each trial and averages over channels, 'Channels' does vice versa
 
 % Saving options for output figures (Note - will overwrite files of the same name if script is re-run) 
-save_fig        = true; % If false, no figures are automatically saved; if true, figures are saved in directory and format specified below
+save_fig        = false; % If false, no figures are automatically saved; if true, figures are saved in directory and format specified below
 save_dir        = 'Path/To/Figure/Directory';
 fig_format      = '-dpng'; % '-depsc' for vector graphics or '-dpng' for png image file
 
@@ -138,13 +138,11 @@ end
 
 figure(2)
 
-spike_density_plot(spikes(channels,trials,:) - psth_offset,split_dim,[psth_win(1):binsize:psth_win(2)])
+spike_density_plot(spikes(channels,trials,:) - psth_offset,split_dim,[psth_win(1):binsize:psth_win(2)]);
 
 title([fig_title ' spike density plot'])
 xlabel(x_ax_label)
 ylabel(y_ax_label)
-
-fixplot
 
 % Note - shaded_region currently not supported on image / heatmap data
 % if do_shade1
@@ -166,7 +164,7 @@ figure(3)
 
 target_spikes 	= spikes(channels,trials,:); % get relevant spikes
 
-psth(target_spikes - psth_offset,binsize,psth_win)
+psth(target_spikes - psth_offset,binsize,psth_win);
 
 % plot aesthetics:
 xlim(psth_win);
@@ -203,7 +201,7 @@ end
 
 mean_LFP_traces = notch_filt(mean_LFP_traces',1000,50)'; % remove 50Hz noise
 
-plot_LFPs_by_channel(mean_LFP_traces(:,q_LFP),LFP_timepoints(q_LFP),.5)
+plot_LFPs_by_channel(mean_LFP_traces(:,q_LFP),LFP_timepoints(q_LFP),.5);
 
 title([fig_title ' LFP by ' split_rows])
 axis tight
@@ -246,11 +244,18 @@ mean_LFP_traces     = notch_filt(mean_LFP_traces',1000,50)'; % remove 50Hz noise
 
 overall_LFP_trace   = mean(mean_LFP_traces);
 
-plot(LFP_timepoints(q_LFP),overall_LFP_trace(q_LFP),'k-','LineWidth',2)
+% Plot the LFP traces
+plot(LFP_timepoints(q_LFP),mean_LFP_traces(:,q_LFP),'LineWidth',2,'Color',[0 0 0 .1]);
+hold on
+plot(LFP_timepoints(q_LFP),overall_LFP_trace(q_LFP),'k-','LineWidth',2);
+
+% Figure labels
 title([fig_title ' LFP'])
-axis tight
 xlabel('Post-stimulus time (s)')
 ylabel('LFP (uV)')
+
+% Plot aesthetics
+axis tight
 fixplot
 
 if do_shade1
