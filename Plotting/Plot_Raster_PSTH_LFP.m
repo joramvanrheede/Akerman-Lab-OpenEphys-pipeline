@@ -67,8 +67,6 @@ x_ax_label  = 'Time (s)';
 
 %% Code execution starts here
 
-close all
-
 load(data_file); % This loads 'ephys_data' struct
 
 spikes  = ephys_data.conditions(condition_nr).spikes; % get spikes from the relevant condition
