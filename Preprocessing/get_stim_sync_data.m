@@ -4,6 +4,9 @@ function [sync_data] = get_stim_sync_data(datafolder,events_chans,trials_from_wh
 % Get the PulsePal stimulus synchronisation data for an openephys experiment; 
 % trial onset and offset times, whisk stimulus on and offset, opto stimulus 
 % on and offset, amplitudes, frequencies and durations, etc.
+% (PulsePal sends these sync data to the openephys system via the I/O board)
+% and the recording software stores them in the ADC channels
+% 
 % 
 % SYNC_DATA:
 % A struct with fairly self-explanatory field names;
@@ -54,7 +57,7 @@ switch_input_nr         = events_chans(4);  	% Which input channel switches betw
 opto_conditions_res   	= 1;    % resolution in ms for automatically extracting conditions from LED delays
 whisk_conditions_res    = 10;  % resolution in ms for automatically extracting conditions from whisker delays
 
-%% Start collecting events data
+%% /!\ WARNING - SOME HARDCODED VOLTAGE THRESHOLDS /!\
 
 if switch_input_nr ~= 0
     trial_threshold     = 0.25; % For trial, signal goes up to 2.5V or less
@@ -144,9 +147,7 @@ for a = 1:length(adc_channel_nrs) % loop through the analog input channels
     end
 end
 
-
-%% A lot of cleanup and repair from here
-
+%% Determine trials from whisker stim?
 if trials_from_whisk
     % We are setting trial starts and ends based on the whisker stimulus;
     % discard previous trial data
@@ -176,21 +177,15 @@ if trials_from_whisk
     trial_ends = trial_starts + 2 * whisk_buffer;
 end
 
+%% A lot of cleanup and repair from here
+
 % determine median trial length
 trial_times     = trial_ends - trial_starts;
 trial_length    = round(median(trial_times),1);
 
-% all trials should have the same length; trials with anomalous
-% length are likely arduino startup floating voltage artefacts; get rid
-% of anomalies
-qtrial          = round(trial_times,1) == trial_length;
-
-trial_starts    = trial_starts(qtrial);
-trial_ends      = trial_ends(qtrial);
-
 total_length 	= round(median(diff(trial_starts)),1);
 
-%% Work out the velocity (length) of a whisk, and the frequency:
+%% Work out the velocity (length) of a whisk, and the frequency of a whisker stimulus burst
 
 % Find which whisking onsets are the first of a trial, and which onsets
 % are the last of a trial
@@ -235,9 +230,9 @@ whisk_stim_freqs        = NaN(size(trial_starts));
 whisk_stim_relay        = NaN(size(trial_starts));
 whisk_stim_amplitudes   = NaN(size(trial_starts));
 
-opto_onsets              = NaN(size(trial_starts));
-opto_offsets             = NaN(size(trial_starts));
-opto_current_levels      = NaN(size(trial_starts));
+opto_onsets             = NaN(size(trial_starts));
+opto_offsets        	= NaN(size(trial_starts));
+opto_current_levels   	= NaN(size(trial_starts));
 
 for a = 1:ntrials
     this_trial_start    = trial_starts(a);
@@ -281,7 +276,7 @@ for a = 1:ntrials
     
 end
 
-%% Whisker stim length
+%% Done with clean-up and event extraction; now determine the different conditions
 
 % Find whisker stim lengths; make histogram of all stim length values, find
 % the peaks in the histogram, and then get rid of jitter in timing data by 
@@ -302,8 +297,6 @@ end
 whisk_stim_amplitudes       = round(whisk_stim_amplitudes);     % round to nearest 1% to remove jitter
 opto_current_levels         = round(opto_current_levels);       % round to nearest 1% to remove jitter
 
-%% Done with clean-up and event extraction; now determine the different conditions
-
 % recover LED delays
 opto_delays                 = round((opto_onsets(:) - trial_starts(:)) / opto_conditions_res,3) * opto_conditions_res;
 
@@ -320,7 +313,7 @@ trial_conditions         	= [whisk_delays(:) whisk_stim_relay(:)  whisk_stim_amp
 trial_conditions(isnan(trial_conditions))   = 999; % pass numerical flag for missing values / absent stimuli, 'unique' doesn't work well with NaNs (NaN ~= NaN)
 
 % extract different conditions from trial matrix
-[conditions, cond_inds, cond_vect]  = unique(trial_conditions,'rows');
+[conditions, cond_inds, cond_vect]          = unique(trial_conditions,'rows');
 
 conditions(conditions == 999)               = NaN; % replace flag with NaN again so it is clear which stimuli are absent for certain conditions
 trial_conditions(trial_conditions == 999)   = NaN;
