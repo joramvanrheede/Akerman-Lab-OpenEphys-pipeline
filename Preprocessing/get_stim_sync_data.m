@@ -321,7 +321,7 @@ trial_conditions(trial_conditions == 999)   = NaN;
 %% We've got all the info; start constructing the output variable:
 
 % Things that vary by condition
-for a = 1:length(conditions)
+for a = 1:size(conditions,1)
     q_cond_trials                           = cond_vect == a; 
     sync_data.conditions(a).trial_starts  	= trial_starts(q_cond_trials);
     sync_data.conditions(a).trial_ends    	= trial_ends(q_cond_trials);
@@ -329,7 +329,7 @@ for a = 1:length(conditions)
     sync_data.conditions(a).whisk_starts 	= whisk_stim_onsets(q_cond_trials);
     sync_data.conditions(a).opto_onsets  	= opto_onsets(q_cond_trials);
     sync_data.conditions(a).opto_offsets  	= opto_offsets(q_cond_trials);
-    
+
     sync_data.conditions(a).whisk_start   	= conditions(a,1);
     sync_data.conditions(a).whisk_stim_nr 	= conditions(a,2);
     sync_data.conditions(a).whisk_amp     	= conditions(a,3);
