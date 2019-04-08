@@ -24,7 +24,14 @@ sorting_folder      = '/Volumes/Akermanlab/Joram/Spike_sorting'; %
 dat_file_name       = 'concatenated_data.dat';
 
 % OPTIONS
-do_CAR              = true;
+do_CAR              = false;
+
+% currently non-functional:
+get_KS_copyfiles  	= false;
+get_sync_data       = true;
+do_dat_and_concat  	= false;
+
+events_chans        = [1 1 3 2]; % sync data ADC channels order - [Trials Whisk Opto Stim_nr]
 
 n_channels          = 32; % number of channels of data
 
@@ -42,12 +49,15 @@ if ~isdir(sort_folder)
 	mkdir(sort_folder);
 end
 
-Kilosort_files        = dir([KS_copy_file_folder]);
-Kilosort_files        = {Kilosort_files.name};
-Kilosort_files(ismember(Kilosort_files,{'.' '..' '.DS_Store'}))     = []; % get rid of '.' and '..'
-
-for i = 1:length(Kilosort_files)
-    [success, message, messageid] = copyfile([KS_copy_file_folder filesep Kilosort_files{i}],sort_folder);
+%%
+if get_KS_copyfiles
+    Kilosort_files        = dir([KS_copy_file_folder]);
+    Kilosort_files        = {Kilosort_files.name};
+    Kilosort_files(ismember(Kilosort_files,{'.' '..' '.DS_Store'}))     = []; % get rid of '.' and '..'
+    
+    for i = 1:length(Kilosort_files)
+        [success, message, messageid] = copyfile([KS_copy_file_folder filesep Kilosort_files{i}],sort_folder);
+    end
 end
 
 %% Find the data folders
@@ -80,13 +90,23 @@ for c = 1:length(concatenate_folders)
     concatenate_folders{c} = [data_date_folder filesep concatenate_folders{c}];
 end
 
-% full file path of the .dat file
-dat_file_name   = [sort_folder filesep dat_file_name];
-
-% function that takes all individual channel .continuous files and merges
-% them into a single .dat file; it will work on single data sets or
-% concatenate multiple data sets
-concatenate_continuous_as_dat(dat_file_name,concatenate_folders, n_channels);
+if get_sync_data
+    clear sync_data
+    for i = 1:length(concatenate_folders)
+        sync_data(i)    = get_stim_sync_data(concatenate_folders{i},events_chans);
+    end
+    save(fullfile(sort_folder,'sync_data'),'sync_data')
+end
+    
+if do_dat_and_concat    
+    % full file path of the .dat file
+    dat_file_name   = [sort_folder filesep dat_file_name];
+    
+    % function that takes all individual channel .continuous files and merges
+    % them into a single .dat file; it will work on single data sets or
+    % concatenate multiple data sets
+    concatenate_continuous_as_dat(dat_file_name,concatenate_folders, n_channels);
+end
 
 %% Optional common average referencing?
 
