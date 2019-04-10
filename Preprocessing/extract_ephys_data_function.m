@@ -45,14 +45,14 @@ filefolders             = filefolders(3:end); % remove '.' and '..' folders
 pattern                 = '._\d+$'; % regular expression to search for file numbers below
 
 [startinds, endinds]    = regexp(filefolders, pattern, 'start','end'); % find number pattern in the remaining filefolders
-filenumbers             = {};
+filenumbers             = [];
 
 % generate a vector of file numbers from the files in the data folder
 for i = 1:length(startinds)
-    filenumbers{i} = filefolders{i}(startinds{i}+2:endinds{i});
+    filenumbers(i)  = str2num(filefolders{i}(startinds{i}+2:endinds{i}));
 end
 
-fileind                 = find(strcmp(filenumbers,num2str(datafilenr))); % find index of target data folder
+fileind                 = find(filenumbers == datafilenr); % find index of target data folder
 filefolder              = filefolders{fileind}; % this is the folder we're after
 
 %% Start collecting events data
@@ -102,6 +102,7 @@ else % events need to be extracted manually from the analog input signal.
             % thisTTL         = thisTTL - min(thisTTL(:));
             
             starttime       = min(timestamps); % find start time
+            endtime         = max(timestamps); % find end time
             timestamps      = (1:length(thisTTL)) / 30000; % manually create new timestamps at 30kHz, openephys sometimes suffers from timestamp wobble even though data acquisition is spot on
             timestamps      = timestamps + starttime; % add start time to the newly created set of timestamps
         end
@@ -522,6 +523,8 @@ elseif strcmpi(data_output,'new')
     ephys_data.data_folder          = filefolder;
     ephys_data.channelmap           = get_channels;
     ephys_data.start_time           = starttime;
+    ephys_data.end_time             = endtime;
+    ephys_data.rec_length           = endtime - starttime;
 else
     error('Unrecognised ''data_output'' requested, available options are ''old'' and ''new''')
 end
