@@ -1,5 +1,5 @@
-function plot_handle = plot_LFPs_by_channel(LFP_traces,LFP_timestamps,spacing)
-% function PLOT_HANDLE = plot_LFPs_by_channel(LFP_TRACES,LFP_TIMESTAMPS,SPACING)
+function plot_handle = plot_LFPs_by_channel(LFP_traces,LFP_timestamps,spacing, alpha_level)
+% function PLOT_HANDLE = plot_LFPs_by_channel(LFP_TRACES,LFP_TIMESTAMPS,SPACING,ALPHA_LEVEL)
 % LFP plotting function that shows the LFP response by channel, with an
 % offset between channels determined by 'spacing'
 % 
@@ -7,7 +7,11 @@ function plot_handle = plot_LFPs_by_channel(LFP_traces,LFP_timestamps,spacing)
 % 
 % LFP_TIMESTAMPS: The time stamps for the values in LFP_traces
 %
-% SPACING: Specifies how far traces are separated, default value is 1.
+% SPACING: Specifies how far traces are separated, default value is 0.1.
+% 
+% ALPHA_LEVEL: specifies the alpha level (transparency) of the traces,
+% default is 0.3.
+
 
 % Set default 'time stamps' to x = 1:n_samples if not specified by user
 if nargin < 2
@@ -16,7 +20,11 @@ end
 
 % Set default spacing to 1
 if nargin < 3
-    spacing = 1;
+    spacing = 0.1;
+end
+
+if nargin < 4
+    alpha_level = .3;
 end
 
 LFP_traces          = LFP_traces'; % LFP_traces needs to be in a different orientation for the functions to follow
@@ -36,7 +44,7 @@ LFP_offsets         = meshgrid((size(LFP_traces,2)+1)-(1:size(LFP_traces,2)),1:s
 LFP_offset_traces   = LFP_traces/spacing + LFP_offsets;
 
 % Plot the traces
-plot_handle = plot(LFP_timestamps,LFP_offset_traces,'k-','LineWidth',2);
+plot_handle = plot(LFP_timestamps,LFP_offset_traces,'LineWidth',2,'Color',[0 0 0 alpha_level]);
 
 % Some plot aesthetics
 axis tight
