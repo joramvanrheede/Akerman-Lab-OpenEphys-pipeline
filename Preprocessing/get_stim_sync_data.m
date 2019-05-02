@@ -179,6 +179,12 @@ end
 
 %% A lot of cleanup and repair from here
 
+if isempty(stim_starts)
+    stim_starts = [0 0.02];
+    stim_ends   = [0.01 00.03]; % set some fake whisk stimuli outside of the trials to avoid empty vars 
+    stim_amps   = [1 1];
+end
+
 % determine median trial length
 trial_times     = trial_ends - trial_starts;
 trial_length    = round(median(trial_times),1);
@@ -220,6 +226,10 @@ end
 
 stim_starts             = whisk_starts;
 stim_amps               = first_stim_amps;
+
+%% Build multiple opto stim capacity here
+
+
 
 %% Match events to trials
 ntrials                 = length(trial_starts);
@@ -287,6 +297,9 @@ length_vals                 = binvec(locs);
 if numel(length_vals) == 1
     % a single whisker stimulation length; just grab median to remove jitter
     median_whisk_length     = nanmedian(whisk_lengths);
+    whisk_stim_lengths   	= repmat(median_whisk_length,size(whisk_stim_lengths));
+elseif numel(length_vals) == 0
+    median_whisk_length     = NaN;
     whisk_stim_lengths   	= repmat(median_whisk_length,size(whisk_stim_lengths));
 else
     % multiple stimulus velocities for this experiment; set each value to 
