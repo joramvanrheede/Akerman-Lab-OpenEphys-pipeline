@@ -1,7 +1,12 @@
 function beeswarmplot(indata,groups,labels,colours)
 % function beeswarmplot(INDATA,GROUPS,LABELS,COLOURS)
 % 
-% INDATA: vector of input data pounts
+% A 'bee swarm plot' (plots individual point cloud for each group) of INDATA,
+% split by GROUPS. 
+% 
+% Function also plots a horizontal line at the median point of the data.
+% 
+% INDATA: vector of input data points
 % GROUPS: vector of same length as INDATA, indicating group membership
 % LABELS: Optional group labels (default is 'Group 1', 'Group 2', etc)
 % COLOURS: Optional colour specification for each group, as an N GROUPS * 3
@@ -25,9 +30,6 @@ end
 if ~exist('colours','var')
     colours = lines;
 end
-
-% Open main figure for plotting
-fig_handle = figure;
 
 xshift              = 0;
 for b = 1:length(groupids)
