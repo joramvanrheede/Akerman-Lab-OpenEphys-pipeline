@@ -44,8 +44,11 @@ xmax    = xvals(2);
 ymin    = yvals(1);
 ymax    = yvals(2);
 
-% Use area plot to create shaded region of defined colour and alpha level
-area([xmin xmin xmax xmax],[ymin ymax ymax ymin],ymin,'FaceColor',colour,'FaceAlpha',alpha_val,'EdgeAlpha',0)
+% Use polyshape plot to create a polygon shape 
+shape_object    = polyshape([xmin xmin xmax xmax],[ymin ymax ymax ymin]);
+
+% plot with defined colour and alpha level
+plot(shape_object,'FaceColor',colour,'FaceAlpha',alpha_val,'EdgeAlpha',0)
 
 % If hold was 'off' originally, reset hold to original hold status
 if set_hold_off
