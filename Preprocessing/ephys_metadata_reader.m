@@ -1,23 +1,24 @@
 %% 
 
-metadata_file       = '/Volumes/PS2Akermanlab/Joram/Data/in vivo metadata/Richard Burman/RJB metadata.xlsx'; % Which metadata file to use?
+metadata_file       = '/Volumes/PS2Akermanlab/Joram/Data/in vivo metadata/AVK/AVK metadata.xlsx'; % Which metadata file to use?
 
 data_folder         = '/Volumes/Akermanlab/Joram/In_vivo_mouse_data';   %'/Volumes/Akermanlab-1/Joram/In vivo mouse data'; % Where are the data? 
 
-save_folder         = '/Volumes/Akermanlab/Joram/RJB';  %/Volumes/Akermanlab-1/Joram/Extracted data'; % Where to save output?
+save_folder         = '/Volumes/Akermanlab/Joram/Preprocessed data/AVK RBSN rAAV S1';  %/Volumes/Akermanlab-1/Joram/Extracted data'; % Where to save output?
 
-start_date          = '2019_02_11';     % format: 'yyyy_mm_dd'; Process files from this date onwards
-end_date            = '2019_02_11';     % format: 'yyyy_mm_dd'; Process files up until this date
+start_date          = '2019_06_07';     % format: 'yyyy_mm_dd'; Process files from this date onwards
+end_date            = '2019_06_07';     % format: 'yyyy_mm_dd'; Process files up until this date
 
-process_expts       = {'Test_pre_1' 'Test_post_1' 'Test_post_seizure'};          % indicate which experiment types to run, e.g.: {'Drive', 'Timing'}, or use {'All'}
+process_expts       = {'all'};          % indicate which experiment types to run, e.g.: {'Drive', 'Timing'}, or use {'All'}
 
 get_LFP             = true;             % get LFP traces? This does increase output data size
 
 trials_from_whisk   = false;          	% discard trial information from ADC channels and determine trials based on whisker instead?
-whisk_buffer        = 0.0625;           	% if using whisk stim to divide recording into trials (above), trials start whisk_buffer (in seconds) before the whisker stim onset, and end 2*whisk buffer after whisker stim ONSET
+whisk_buffer        = 3;              % 0.0625 	% if using whisk stim to divide recording into trials (above), trials start whisk_buffer (in seconds) before the whisker stim onset, and end 2*whisk buffer after whisker stim ONSET
 
 data_output         = 'new';            % 'new': improved data structure, or 'old': 'channels' style data structure do
 
+do_CAR              = true;             % Do common average referencing?
 
 %% global analysis parameters
 
@@ -165,7 +166,7 @@ for a = 1:size(metadata,1)
     parameters.data_output          = data_output;
     parameters.trials_from_whisk    = trials_from_whisk;
     parameters.whisk_buffer         = whisk_buffer;
-    
+    parameters.do_CAR               = do_CAR;
     
     %% time to extract the data
     this_data_folder                = [data_folder filesep this_date];

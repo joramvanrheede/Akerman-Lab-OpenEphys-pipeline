@@ -29,6 +29,8 @@ data_output             = parameters.data_output;           % data output type; 
 trials_from_whisk       = parameters.trials_from_whisk;     % discard trial information from ADC channels and determine trials based on whisker instead?
 whisk_buffer            = parameters.whisk_buffer;          % if using whisk stim to divide recording into trials (above), trials start whisk_buffer (in seconds) before the whisker stim onset, and end 2*whisk buffer after whisker stim ONSET
 
+do_CAR                  = parameters.do_CAR;                % If true, do common average referencing
+
 % Is this still needed?
 morse_start             = [3 1 3 1 3]; % morse code for start of trial; short = 1, long = 3;
 morse_stop              = [1 1 1 3 1 3]; % morse code for end of trial; short = 1, long = 3;
@@ -442,7 +444,7 @@ cond_nrs        = 1:size(conditions,1);
 % initialise butterworth bandpass filter
 samplefreq = 30000;
 
-[filt_b,filt_a]           = butter(2, [500 6000]/(samplefreq/2));
+[filt_b,filt_a]           = butter(2, [500 5000]/(samplefreq/2));
 
 [LFPfilt_b, LFPfilt_a]    = butter(2, [1 300]/(samplefreq/2));
 LFPtraces       = [];
@@ -450,19 +452,26 @@ LFPtimestamps  	= [];
 
 if qspike_detection || get_LFP % 'manual' spike detection in matlab
 
-%     if q_common_average_ref
-%         CAR_trace   = 0;
-%         for a = 1:n_channels
-%             disp(['Loading channel ' num2str(a)]);
-%             [thistrace timestamps info] = load_open_ephys_data([datafolder filesep filefolder filesep data_prefix '_CH' num2str(get_channels(a)) '.continuous']);
-%             
-%             CAR_trace = CAR_trace + (1/n_channels) * thistrace;
-%         end
-%     end
-%     
+    if do_CAR
+        CAR_trace   = 0;
+        for a = 1:n_channels
+            disp(['Loading channel ' num2str(a)]);
+            [thistrace timestamps info] = load_open_ephys_data([datafolder filesep filefolder filesep data_prefix '_CH' num2str(get_channels(a)) '.continuous']);
+            
+            CAR_trace = CAR_trace + (thistrace / std(thistrace(:)));
+        end
+    end
+    
     for a = 1:n_channels
         disp(['Loading channel ' num2str(a)]);
         [thistrace timestamps info] = load_open_ephys_data([datafolder filesep filefolder filesep data_prefix '_CH' num2str(get_channels(a)) '.continuous']);
+        
+        if do_CAR
+            [b_coeff]           = regress(thistrace(:),CAR_trace(:));
+            
+            thistrace           = thistrace(:) - b_coeff * CAR_trace(:);
+        end
+        
         
         starttime          	= min(timestamps); % get original offset
         
