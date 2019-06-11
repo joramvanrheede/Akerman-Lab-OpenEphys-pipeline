@@ -478,7 +478,7 @@ if qspike_detection || get_LFP % 'manual' spike detection in matlab
         timestamps          = ((1:length(thistrace)) / 30000); % generate timestamps (openephys output t)
         
         % Do simple homebrew spike detection by 1) filtering with bandpass, 2) smoothing and 3) thresholding
-        spiketrace        	= filter(filt_b,filt_a,thistrace); % filter data with butterworth bandpass filter to get spike traces
+        spiketrace        	= filtfilt(filt_b,filt_a,thistrace); % filter data with butterworth bandpass filter to get spike traces
         spiketrace        	= smooth(spiketrace, spike_smoothwin); % smooth data with
         
         q_threshold         = (-spiketrace) > (spike_thresh * std(spiketrace)); % determine standard deviation to determine threshold, detect threshold crossings (negative)
@@ -490,7 +490,7 @@ if qspike_detection || get_LFP % 'manual' spike detection in matlab
         spikes(a).info      = [];
         
         if get_LFP
-            LFPtrace        = filter(LFPfilt_b,LFPfilt_a,thistrace);
+            LFPtrace        = filtfilt(LFPfilt_b,LFPfilt_a,thistrace);
             LFPtrace        = LFPtrace(1:30:end); % resample at 1000Hz
             LFPtimestamps   = timestamps(1:30:end)+ starttime; % resample to 1000Hz
             
