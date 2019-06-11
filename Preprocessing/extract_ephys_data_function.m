@@ -457,7 +457,7 @@ if qspike_detection || get_LFP % 'manual' spike detection in matlab
         for a = 1:n_channels
             disp(['Loading channel ' num2str(a)]);
             [thistrace timestamps info] = load_open_ephys_data([datafolder filesep filefolder filesep data_prefix '_CH' num2str(get_channels(a)) '.continuous']);
-            
+            thistrace = thistrace - median(thistrace);
             CAR_trace = CAR_trace + (thistrace / std(thistrace(:)));
         end
     end
