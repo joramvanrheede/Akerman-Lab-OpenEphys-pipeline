@@ -4,10 +4,10 @@ metadata_file       = '/Volumes/PS2Akermanlab/Joram/Data/in vivo metadata/AVK/AV
 
 data_folder         = '/Volumes/Akermanlab/Joram/In_vivo_mouse_data';   %'/Volumes/Akermanlab-1/Joram/In vivo mouse data'; % Where are the data? 
 
-save_folder         = '/Volumes/Akermanlab/Joram/Preprocessed data/AVK RBSN rAAV S1';  %/Volumes/Akermanlab-1/Joram/Extracted data'; % Where to save output?
+save_folder         = '/Volumes/Akermanlab/Joram/Preprocessed data/CAR AVK S1';  %/Volumes/Akermanlab-1/Joram/Extracted data'; % Where to save output?
 
-start_date          = '2019_06_07';     % format: 'yyyy_mm_dd'; Process files from this date onwards
-end_date            = '2019_06_07';     % format: 'yyyy_mm_dd'; Process files up until this date
+start_date          = '2019_05_21';     % format: 'yyyy_mm_dd'; Process files from this date onwards
+end_date            = '2019_05_21';     % format: 'yyyy_mm_dd'; Process files up until this date
 
 process_expts       = {'all'};          % indicate which experiment types to run, e.g.: {'Drive', 'Timing'}, or use {'All'}
 
@@ -29,6 +29,7 @@ channel_order_16ch  = [13 29 4 20 15 31 3 19 16 32 1 17 2 18 14 30]; %% Correcte
 channel_order_32ch  = [1 17 16 32 3 19 14 30 9 25 10 20 8 24 2 29 7 26 15 21 11 23 12 28 6 18 13 22 5 27 4 31]; % Corrected 08/02/2019
 
 %% running code starts here
+tic
 
 % Unpack date strings to screen for which dates should be processed
 start_year   	= str2num(start_date(1:4));
@@ -175,7 +176,8 @@ for a = 1:size(metadata,1)
     % continue even if there is an error with one particular data file
     try 
         % data extraction function (where it all really happens)
-        ephys_data              	= extract_ephys_data_function(this_data_folder, this_file, q_spike_detection, parameters);
+        ephys_data              	= extract_ephys_data(this_data_folder, this_file, q_spike_detection, parameters);
+        toc
     catch
         % Report any errors in processing
         warning(['Error processing file ' this_data_folder ' #' num2str(this_file) ])
