@@ -1,15 +1,15 @@
 %% 
 
-metadata_file       = '/Volumes/PS2Akermanlab/Joram/Data/in vivo metadata/AVK/AVK metadata.xlsx'; % Which metadata file to use?
+metadata_file       = '/Volumes/PS2Akermanlab/Joram/Data/in vivo metadata/AVK/AVK Metadata.xlsx'; % Which metadata file to use?
 
 data_folder         = '/Volumes/Akermanlab/Joram/In_vivo_mouse_data';   %'/Volumes/Akermanlab-1/Joram/In vivo mouse data'; % Where are the data? 
 
-save_folder         = '/Volumes/Akermanlab/Joram/Preprocessed data/CAR AVK S1';  %/Volumes/Akermanlab-1/Joram/Extracted data'; % Where to save output?
+save_folder         = '/Volumes/Akermanlab/Joram/Preprocessed data/AVK POM';  %/Volumes/Akermanlab-1/Joram/Extracted data'; % Where to save output?
 
-start_date          = '2019_05_21';     % format: 'yyyy_mm_dd'; Process files from this date onwards
-end_date            = '2019_05_21';     % format: 'yyyy_mm_dd'; Process files up until this date
+start_date          = '2019_07_19';     % format: 'yyyy_mm_dd'; Process files from this date onwards
+end_date            = '2019_07_19';     % format: 'yyyy_mm_dd'; Process files up until this date
 
-process_expts       = {'all'};          % indicate which experiment types to run, e.g.: {'Drive', 'Timing'}, or use {'All'}
+process_expts       = {'LED_ramp'};          % indicate which experiment types to run, e.g.: {'Drive', 'Timing'}, or use {'All'}
 
 get_LFP             = true;             % get LFP traces? This does increase output data size
 
@@ -19,6 +19,8 @@ whisk_buffer        = 3;              % 0.0625 	% if using whisk stim to divide 
 data_output         = 'new';            % 'new': improved data structure, or 'old': 'channels' style data structure do
 
 do_CAR              = true;             % Do common average referencing?
+save_sync_chans     = true;
+sync_chans_res      = 1000;
 
 %% global analysis parameters
 
@@ -168,6 +170,9 @@ for a = 1:size(metadata,1)
     parameters.trials_from_whisk    = trials_from_whisk;
     parameters.whisk_buffer         = whisk_buffer;
     parameters.do_CAR               = do_CAR;
+    parameters.save_sync_chans      = save_sync_chans;
+    parameters.sync_chans_res       = sync_chans_res;
+    
     
     %% time to extract the data
     this_data_folder                = [data_folder filesep this_date];

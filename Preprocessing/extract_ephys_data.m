@@ -2,12 +2,9 @@ function [ephys_data] = extract_ephys_data(datafolder,datafilenr,qspike_detectio
 
 data_prefix             = parameters.data_prefix;           % = '100';
 q_digital_events        = parameters.digital_events;        % 1/0% events determined using openephys event detection
-q_channelmap            = parameters.channelmap;            % 1/0 have channels been mapped in openephys (1) or do we need to remap ourselves (0)?
-spike_smoothwin         = parameters.spike_smoothwin;       % smoothing window for spike detection
 spike_thresh            = parameters.spike_thresh;          % spike threshold in SDs
 LED_conditions_res      = parameters.LED_conditions_res;    % resolution in ms for automatically extracting conditions from LED delays
 whisk_conditions_res    = parameters.whisk_conditions_res;  % resolution in ms for automatically extracting conditions from whisker delays
-spontwin                = parameters.spontwin;              % window for spont spikes e.g. [0 200] ms
 
 trial_input_nr          = parameters.trial_channel;         % Which input channel has the trial TTL
 stim_input_nr           = parameters.whisk_channel;         % Which input channel has the stim / whisk TTL
@@ -24,18 +21,20 @@ get_channels            = parameters.get_channels;        	% which channels to g
 
 get_LFP                 = parameters.get_LFP;               % get LFP data?
 
-data_output             = parameters.data_output;           % data output type; new 'ephys_data' or 'channels'-type -
-
 trials_from_whisk       = parameters.trials_from_whisk;     % discard trial information from ADC channels and determine trials based on whisker instead?
 whisk_buffer            = parameters.whisk_buffer;          % if using whisk stim to divide recording into trials (above), trials start whisk_buffer (in seconds) before the whisker stim onset, and end 2*whisk buffer after whisker stim ONSET
 
 do_CAR                  = parameters.do_CAR;                % If true, do common average referencing
+
+save_sync_chans         = parameters.save_sync_chans;       % save the synchronisation channel outputs
+sync_chans_res          = parameters.sync_chans_res;        % resolution for the synch channel outputs
 
 %% Hard-coded parameters
 
 samplefreq              = 30000;                        
 spike_filt_band         = [500 5000];
 LFP_filt_band           = [1 300];
+max_opto_freq           = 100;
 
 % Is this still needed?
 morse_start             = [3 1 3 1 3]; % morse code for start of trial; short = 1, long = 3;
@@ -159,6 +158,13 @@ else % events need to be extracted manually from the analog input signal.
             case 4
                 switch_up       = start_times(:);
                 switch_down     = end_times(:);
+        end
+        if save_sync_chans
+            resample_freq               = round(samplefreq / sync_chans_res);
+            sync_chan_traces(:,a)       = thisTTL(1:resample_freq:end);
+            if a == 1
+                sync_chan_timestamps 	= timestamps(1:resample_freq:end);
+            end
         end
     end
 end
@@ -294,10 +300,10 @@ first_opto_inds             = find(diff(opto_starts) > total_length/2)+1;
 
 if ~isempty(first_opto_inds)
     opto_firsts                 = opto_starts(first_opto_inds);
-    opto_lasts                  = opto_starts(first_opto_inds-1);
-    
-    opto_burst_ends          	= opto_ends(first_opto_inds);
-    opto_burst_ends          	= [opto_burst_ends(1); opto_burst_ends(:)];
+    opto_lasts                  = opto_ends(first_opto_inds-1);
+%     
+%     opto_burst_ends          	= opto_ends(first_opto_inds);
+%     opto_burst_ends          	= [opto_burst_ends(1); opto_burst_ends(:)];
     
     opto_amps                   = opto_powers(first_opto_inds);
     opto_amps                   = [opto_amps(1); opto_amps(:)];
@@ -310,9 +316,8 @@ else
 end
 
 opto_firsts                 = [opto_starts(1); opto_firsts(:)];
-opto_lasts                  = [opto_lasts(:); opto_starts(end)];
+opto_lasts                  = [opto_lasts(:); opto_ends(end)];
 
-opto_lengths              	= opto_ends - opto_starts;
 opto_freqs              	= NaN(size(opto_starts));
 
 for a = 1:length(opto_firsts)
@@ -325,6 +330,8 @@ for a = 1:length(opto_firsts)
     if isempty(this_opto_freq)
         this_opto_freq  = 99;
     elseif isnan(this_opto_freq)
+        this_opto_freq  = 99;
+    elseif this_opto_freq > max_opto_freq
         this_opto_freq  = 99;
     end
     
@@ -379,9 +386,9 @@ for a = 1:ntrials
     select_opto_end         = opto_lasts >= this_trial_start & opto_lasts <= this_trial_end;
     
     if sum(select_opto_start) == 1 && sum(select_opto_end) == 1
-        opto_onsets(a)           = opto_starts(select_opto_start);
-        opto_offsets(a)          = opto_ends(select_opto_end);
-        opto_current_levels(a)   = opto_powers(select_opto_start);
+        opto_onsets(a)           = opto_firsts(select_opto_start);
+        opto_offsets(a)          = opto_lasts(select_opto_end);
+        opto_current_levels(a)   = max([opto_powers(select_opto_start) opto_powers(select_opto_end)]);
         opto_freq(a)             = opto_freqs(select_opto_start);
     elseif sum(select_opto_start) > 1 || sum(select_opto_end) > 1
         error('Multiple LED stimulus values found for this trial')
@@ -412,8 +419,8 @@ switch expt_type % for each experiment, make sure not to split conditions by oth
         whisk_lengths         	= repmat(median_whisk_length,size(whisk_lengths));
 end
 
-stim_amps   = round(stim_amps / 5) * 5; % round to nearest 5%
-opto_powers  = round(opto_powers / 5) * 5; % round to nearest 5%
+stim_amps       = round(stim_amps / 5) * 5; % round to nearest 5%
+opto_powers     = round(opto_powers / 5) * 5; % round to nearest 5%
 
 %% Done with clean-up and event extraction; now determine the different conditions
 
@@ -425,7 +432,7 @@ whisk_delays                = round((allwhisks(:) - trial_starts(:)) / whisk_con
 
 % recover LED durations
 LED_ontimes                 = opto_ends - opto_starts;
-LED_durations               = round(LED_ontimes(:) / 5,3) * 5;
+LED_durations               = round(LED_ontimes(:) / LED_conditions_res,3) * LED_conditions_res;
 
 % reconstruct trial matrix
 trial_conditions         	= [LED_delays(:) whisk_delays(:) LED_durations(:) whisk_freqs(:) round(1./whisk_lengths(:)) whisk_stim_relay(:) stim_amps(:) opto_powers(:) opto_freq(:)];
@@ -598,6 +605,12 @@ for a = 1:n_channels
             qLFPtimestamps              = LFPtimestamps >= trial_starts(b) & LFPtimestamps < trial_ends(b);
             ephys_data.conditions(thiscond).LFP_trace(a,cond_counters(thiscond,a),1:length(LFPtraces(qLFPtimestamps,a))) = LFPtraces(qLFPtimestamps,a);
             ephys_data.LFP_timestamps   = 1:sum(qLFPtimestamps) / 30000;
+        end
+        if a == 1 && save_sync_chans
+            q_sync_timestamps           = sync_chan_timestamps >= trial_starts(b) & sync_chan_timestamps < trial_ends(b);
+            for i = 1:size(sync_chan_traces,2)
+                ephys_data.conditions(thiscond).sync_chan_traces(i,cond_counters(thiscond,a),1:sum(q_sync_timestamps)) = sync_chan_traces(q_sync_timestamps,i);
+            end
         end
     end
 end
