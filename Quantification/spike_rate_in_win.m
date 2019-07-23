@@ -15,7 +15,7 @@ function spike_rate = spike_rate_in_win(spikes, time_win)
 spikes_in_win       = spikes >= time_win(1) & spikes <= time_win(2);
 spike_count         = sum(spikes_in_win(:));
 
-% Work out mean spike count per trial per channel
+% Work out mean spike count over trials and channels
 n_channels          = size(spikes,1);
 n_trials            = size(spikes,2);
 mean_spike_count  	= spike_count / n_channels / n_trials;
