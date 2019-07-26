@@ -1,4 +1,4 @@
-function subplot_equal_y
+function subplot_equal_y(ymax)
 % function subplot_equal_y
 % Sets all subplots in figure to use the same y axis; does nothing if there
 % is only a single plot in the figure so far.
@@ -14,5 +14,9 @@ if iscell(y_limits)
     maxy        = max(maxy);
     miny        = min(miny);
     
-    set(plotaxes,'YLim',[miny maxy]); % add margin
+    if nargin < 1
+        set(plotaxes,'YLim',[miny maxy]); % add margin
+    elseif nargin == 1
+        set(plotaxes,'YLim',[miny ymax]); % add margin
+    end
 end
