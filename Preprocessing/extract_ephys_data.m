@@ -229,7 +229,6 @@ total_length 	= round(median(diff(trial_starts)),3);
 trial_gap       = median(trial_ends - trial_starts);
 
 %% At the end, simply chuck trials with no events in them?
-%% Allwhisks??
 
 if isempty(stim_starts)
     stim_starts = [0 0.02];
@@ -301,13 +300,9 @@ first_opto_inds             = find(diff(opto_starts) > total_length/2)+1;
 if ~isempty(first_opto_inds)
     opto_firsts                 = opto_starts(first_opto_inds);
     opto_lasts                  = opto_ends(first_opto_inds-1);
-%     
-%     opto_burst_ends          	= opto_ends(first_opto_inds);
-%     opto_burst_ends          	= [opto_burst_ends(1); opto_burst_ends(:)];
-    
+
     opto_amps                   = opto_powers(first_opto_inds);
     opto_amps                   = [opto_amps(1); opto_amps(:)];
-    
 else
     opto_firsts                 = [];
     opto_lasts                  = [];
@@ -360,8 +355,6 @@ for a = 1:ntrials
     % see whether there was a whisker stimulus
     select_whisk_start 	= whisk_starts >= this_trial_start & whisk_starts <= this_trial_end;
     
-    select_opto_start   = opto_firsts >= this_trial_start & opto_firsts <= this_trial_end;
-    
     if sum(select_whisk_start) == 1
         whisk_stim_onsets(a)        = allwhisks(select_whisk_start);
         whisk_stim_lengths(a)       = whisk_lengths(select_whisk_start);
@@ -398,44 +391,36 @@ for a = 1:ntrials
     
 end
 
-opto_starts     = opto_onsets;
-opto_ends       = opto_offsets;
-allwhisks       = whisk_stim_onsets;
-whisk_freqs     = whisk_stim_freqs;
-whisk_lengths   = whisk_stim_lengths;
-stim_amps       = whisk_stim_amplitudes;
-opto_powers     = opto_current_levels;
-
 %%
 
 switch expt_type % for each experiment, make sure not to split conditions by other conditions - NEEDS WORK
     case 'Velocity'
         binvec                  = [0:0.0001:2];
-        [pks, locs]             = findpeaks(smooth(histc(whisk_lengths,binvec),3),'MinPeakHeight',3);
+        [pks, locs]             = findpeaks(smooth(histc(whisk_stim_lengths,binvec),3),'MinPeakHeight',3);
         length_vals             = binvec(locs);
-        whisk_lengths           = interp1(length_vals,length_vals,whisk_lengths,'nearest','extrap');
+        whisk_stim_lengths           = interp1(length_vals,length_vals,whisk_stim_lengths,'nearest','extrap');
     otherwise
-        median_whisk_length     = nanmedian(whisk_lengths);
-        whisk_lengths         	= repmat(median_whisk_length,size(whisk_lengths));
+        median_whisk_length     = nanmedian(whisk_stim_lengths);
+        whisk_stim_lengths         	= repmat(median_whisk_length,size(whisk_stim_lengths));
 end
 
-stim_amps       = round(stim_amps / 5) * 5; % round to nearest 5%
-opto_powers     = round(opto_powers / 5) * 5; % round to nearest 5%
+whisk_stim_amplitudes       = round(whisk_stim_amplitudes / 5) * 5; % round to nearest 5%
+opto_current_levels     = round(opto_current_levels / 5) * 5; % round to nearest 5%
 
 %% Done with clean-up and event extraction; now determine the different conditions
 
 % recover LED delays
-LED_delays                  = round((opto_starts(:) - trial_starts(:)) / LED_conditions_res,3) * LED_conditions_res;
+LED_delays                  = round((opto_onsets(:) - trial_starts(:)) / LED_conditions_res,3) * LED_conditions_res;
 
 % recover whisking delays
-whisk_delays                = round((allwhisks(:) - trial_starts(:)) / whisk_conditions_res,3) * whisk_conditions_res;
+whisk_delays                = round((whisk_stim_onsets(:) - trial_starts(:)) / whisk_conditions_res,3) * whisk_conditions_res;
 
 % recover LED durations
-LED_ontimes                 = opto_ends - opto_starts;
+LED_ontimes                 = opto_offsets - opto_onsets;
 LED_durations               = round(LED_ontimes(:) / LED_conditions_res,3) * LED_conditions_res;
 
 % reconstruct trial matrix
-trial_conditions         	= [LED_delays(:) whisk_delays(:) LED_durations(:) whisk_freqs(:) round(1./whisk_lengths(:)) whisk_stim_relay(:) stim_amps(:) opto_powers(:) opto_freq(:)];
+trial_conditions         	= [LED_delays(:) whisk_delays(:) LED_durations(:) whisk_stim_freqs(:) round(1./whisk_stim_lengths(:)) whisk_stim_relay(:) whisk_stim_amplitudes(:) opto_current_levels(:) opto_freq(:)];
 
 condition_headers           = {'LED start time' 'Whisk start time' 'LED duration' 'Whisk frequency' 'Whisk velocity' 'Whisk stim number' 'Whisk amplitude' 'LED Power' 'Opto_frequency'};
 
@@ -454,7 +439,6 @@ end
 cond_nrs        = 1:size(conditions,1);
 
 %% Get trace data (filter for spikes using 500 - 5000 Hz bandpass; can get LFP filtering e.g. with a 1-300Hz pass)
-
 
 [filt_b,filt_a]       	= butter(2, spike_filt_band/(samplefreq/2));
 
