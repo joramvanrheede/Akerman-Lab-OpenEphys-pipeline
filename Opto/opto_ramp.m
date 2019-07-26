@@ -2,7 +2,7 @@
 
 data_file           = '/Volumes/Akermanlab/Joram/Preprocessed data/AVK POM/LED_ramp/2019_07_19/2019_07_19-36-LED_ramp.mat';
 
-channels            = 1:16;
+channels            = 1:32;
 trials              = 'all';
 
 plot_lims           = [0 18]; % Relative to whisk onset

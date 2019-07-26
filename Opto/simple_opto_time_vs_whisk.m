@@ -1,7 +1,7 @@
 
 
 %% Input variables 
-data_file           = ['/Volumes/Akermanlab/Joram/Preprocessed data/AVK S1/Timing/2019_05_21/2019_05_21-22-Timing.mat'];
+data_file           = ['/Volumes/Akermanlab/Joram/Preprocessed data/AVK POM/Timing/2019_04_02/2019_04_02-13-Timing.mat'];
 
 q_reload            = 1;
 
@@ -9,11 +9,13 @@ q_reload            = 1;
 early_resp_win      = [0.0055 0.020]; % response window for assessing 'early' response (spike count is from this time window)
 late_resp_win       = [0.020 0.2];   % response window for assessing 'late' response (spike count is from this time window)
 opto_resp_win       = [0 0.03];     % window for assessing opto response
+rate_kernel_size    = [0.005];       % extent of 3SD gaussian kernel for estimating peak rate of fire
 
 psth_win            = [-0.1 .3];   % window for plotting PSTH
 psth_bin_size       = [0.001];  % bin size for PSTH
 
-channels            = [1:32];    % which recording sites / channels to include
+
+channels            = [1:8];    % which recording sites / channels to include
 
 
 %% Only necessary if auto-saving figures
@@ -37,18 +39,19 @@ if q_reload
     load(data_file)
 end
 
-early_spike_count   = [];
-late_spike_count    = [];
-serr_early_spikes   = [];
-serr_late_spikes    = [];
-peak_spike_rate     = [];
-opto_spike_count    = [];
-delta_t             = [];
-whisker_nr          = [];
-opto_power          = [];
-n_trials            = [];
-all_psth_counts    	= [];
-counter             = 0;
+early_spike_count       = [];
+late_spike_count        = [];
+serr_early_spikes       = [];
+serr_late_spikes      	= [];
+peak_spike_rate         = [];
+channel_spike_counts    = [];
+opto_spike_count        = [];
+delta_t                 = [];
+whisker_nr              = [];
+opto_power              = [];
+n_trials                = [];
+all_psth_counts     	= [];
+counter                 = 0;
 for a = 1:length(ephys_data.conditions)
     
     this_cond               = ephys_data.conditions(a);
@@ -79,7 +82,7 @@ for a = 1:length(ephys_data.conditions)
     
     % get full post_stimulus_time_histogram
     figure
-    [plot_handle, psth_counts, psth_bins]  = psth(spikes, psth_bin_size, psth_win);
+    [plot_handle, psth_counts, psth_bins]  = psth(spikes, psth_bin_size, psth_win, rate_kernel_size);
     close(gcf)
     
     all_psth_counts                 = [all_psth_counts; psth_counts(:)'];
@@ -163,7 +166,7 @@ for k = 1:n_delta_ts
     
 end
 % set all y axes to equal
-subplot_equal_y(robust_max(plot_ymax,20,'all') * 1.2);
+subplot_equal_y(robust_max(plot_ymax,40,'all') * 1.2);
 set(gcf,'Units','normalized','Position',[.3 0 .4 1])
 
 
