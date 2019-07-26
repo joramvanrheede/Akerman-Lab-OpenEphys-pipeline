@@ -30,6 +30,7 @@ function [sync_data] = get_stim_sync_data(datafolder,events_chans,trials_from_wh
 % TRIALS_FROM_WHISK: When trial sync data is incomplete or unsatisfactory,
 % determine 'trials' based on a period of time around the whisker stimulus,
 % the period of time is set by WHISK_BUFFER.
+% If trial_chan == 0 the script will default to TRIALS_FROM_WHISK == 1;
 % 
 % 
 % WHISK_BUFFER: If TRIALS_FROM_WHISK == true, then the script will generate
@@ -44,8 +45,9 @@ if nargin < 3
     trials_from_whisk   = false;
 end
 if nargin < 4
-    whisk_buffer        = 2; % default is to collect 2 secs from the onset of whisk stimulus
+    whisk_buffer        = 'auto'; % default is to collect 2 secs from the onset of whisk stimulus
 end
+min_whisk_buffer        = 2;
 
 % Unpack 
 trial_input_nr          = events_chans(1);         % Which input channel has the trial TTL
@@ -74,6 +76,13 @@ end
 adc_channel_nrs        	= [trial_input_nr stim_input_nr opto_input_nr switch_input_nr];
 adc_channel_thresholds 	= [trial_threshold stim_threshold opto_threshold switch_threshold];
 
+if adc_channel_nrs(1) == 0
+    trials_from_whisk = 1;
+end
+if trials_from_whisk
+    adc_channel_nrs(1) = 0;
+end
+
 %% Some code to find file prefix for data and sync files
 
 data_files 	= dir(fullfile(datafolder,'*.continuous'));
@@ -91,6 +100,10 @@ data_prefix = chan_file(1:chan_ind);
 
 %% 
 for a = 1:length(adc_channel_nrs) % loop through the analog input channels
+    
+    if a == 1 && trials_from_whisk
+        continue
+    end
     
     if a == 1 || adc_channel_nrs(a) ~= adc_channel_nrs(a-1) % Don't reload data if trace is already loaded
         disp(['Loading ADC input channel ' num2str(adc_channel_nrs(a))])
@@ -148,6 +161,13 @@ for a = 1:length(adc_channel_nrs) % loop through the analog input channels
 end
 
 %% Determine trials from whisker stim?
+if ischar(whisk_buffer) && strcmpi(whisk_buffer, 'auto')
+    whisk_buffer    = min_whisk_buffer;
+    auto_buff       = true;
+else
+    auto_buff       = false;
+end
+
 if trials_from_whisk
     % We are setting trial starts and ends based on the whisker stimulus;
     % discard previous trial data
@@ -174,7 +194,21 @@ if trials_from_whisk
             trial_counter = trial_counter + 1;
         end
     end
-    trial_ends = trial_starts + 2 * whisk_buffer;
+    
+    if auto_buff
+        % If no whisk_buffer has been specified, use distance between subsequent trials to set trial_length
+        trial_spacing 	= round(mean(diff(trial_starts)));
+        trial_length    = trial_spacing - 1;
+        pre_whisk       = trial_length / 2; % if trial_length is uneven, have fewer seconds before than after whisk
+        post_whisk      = trial_length / 2; % see above
+        
+        corr_starts  	= trial_starts + whisk_buffer; % add min_whisk_buffer again to recover the onset of the first stimulus for each trial
+        trial_starts 	= corr_starts - pre_whisk; 
+        trial_ends      = corr_starts + post_whisk;
+    else
+        trial_ends      = trial_starts + 2 * whisk_buffer;
+    end
+    
 end
 
 %% A lot of cleanup and repair from here
@@ -228,7 +262,53 @@ stim_starts             = whisk_starts;
 stim_amps               = first_stim_amps;
 
 %% Build multiple opto stim capacity here
+%% opto burst
+if isempty(opto_starts)
+    opto_starts = [0 0.02];
+    opto_ends   = [0.01 00.03]; % set some fake opto stimuli outside of the trials
+    opto_powers = [1 1];
+end
 
+
+first_opto_inds             = find(diff(opto_starts) > total_length/2)+1;
+
+if ~isempty(first_opto_inds)
+    opto_firsts                 = opto_starts(first_opto_inds);
+    opto_lasts                  = opto_ends(first_opto_inds-1);
+
+    opto_amps                   = opto_powers(first_opto_inds);
+    opto_amps                   = [opto_amps(1); opto_amps(:)];
+    
+else
+    opto_firsts                 = [];
+    opto_lasts                  = [];
+    
+    opto_burst_ends             = opto_ends;
+end
+
+opto_firsts                 = [opto_starts(1); opto_firsts(:)];
+opto_lasts                  = [opto_lasts(:); opto_ends(end)];
+
+opto_freqs              	= NaN(size(opto_starts));
+
+for a = 1:length(opto_firsts)
+    this_opto_first     = opto_firsts(a);
+    this_opto_last   	= opto_lasts(a);
+    
+    q_opto_burst        = opto_starts > this_opto_first & opto_starts < this_opto_last;
+    
+    this_opto_freq   	= mean(round(1./diff(opto_starts(q_opto_burst))));
+    if isempty(this_opto_freq)
+        this_opto_freq  = 99;
+    elseif isnan(this_opto_freq)
+        this_opto_freq  = 99;
+    elseif this_opto_freq > max_opto_freq
+        this_opto_freq  = 99;
+    end
+    
+    opto_freqs(a)      = this_opto_freq;
+    
+end
 
 
 %% Match events to trials
@@ -243,6 +323,7 @@ whisk_stim_amplitudes   = NaN(size(trial_starts));
 opto_onsets             = NaN(size(trial_starts));
 opto_offsets        	= NaN(size(trial_starts));
 opto_current_levels   	= NaN(size(trial_starts));
+opto_freq               = NaN(size(trial_starts));
 
 for a = 1:ntrials
     this_trial_start    = trial_starts(a);
@@ -275,11 +356,15 @@ for a = 1:ntrials
     select_opto_end 	= opto_ends >= this_trial_start & opto_ends <= this_trial_end;
     
     if sum(select_opto_start) == 1 && sum(select_opto_end) == 1
-        opto_onsets(a)           = opto_starts(select_opto_start);
-        opto_offsets(a)          = opto_ends(select_opto_end);
-        opto_current_levels(a)   = opto_powers(select_opto_start);
+        opto_onsets(a)           = opto_firsts(select_opto_start);
+        opto_offsets(a)          = opto_lasts(select_opto_end);
+        opto_current_levels(a)   = max([opto_powers(select_opto_start) opto_powers(select_opto_end)]);
+        opto_freq(a)             = opto_freqs(select_opto_start);
     elseif sum(select_opto_start) > 1 || sum(select_opto_end) > 1
-        error('Multiple opto stimulus values found for this trial')
+        warning('Multiple opto stimulus values found for this trial')
+        opto_onsets(a)           = min(opto_starts(select_opto_start));
+        opto_offsets(a)          = max(opto_ends(select_opto_end));
+        opto_current_levels(a)   = max(opto_powers(select_opto_start));
     elseif sum(select_opto_start) ~= sum(select_opto_end)
         error('Mismatch in number of detected opto onsets and offsets for this trial')
     end
