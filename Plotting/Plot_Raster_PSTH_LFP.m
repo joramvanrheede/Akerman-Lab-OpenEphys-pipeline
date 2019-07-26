@@ -16,18 +16,18 @@
 %% User set variables:
 
 %% Change these variables for every experiment:
-data_file       = 'Full/Path/To/Processed/Data_file.mat';% 'Full/Path/To/Processed/Data_file.mat' Full path to data file, preprocessed into trial-synchronised spike time data using ephys_metadata_reader
-fig_title       = 'Experiment title here'; % This sets the title of the figures - NOTE: also used for the filename of saved figures
+data_file       = '/Volumes/Akermanlab/Joram/Preprocessed data/RWS_8Hz/2019_03_09/2019_03_09-4-RWS_1.mat';% 'Full/Path/To/Processed/Data_file.mat' Full path to data file, preprocessed into trial-synchronised spike time data using ephys_metadata_reader
+fig_title       = '8Hz induction'; % This sets the title of the figures - NOTE: also used for the filename of saved figures
 
 % This determines the selection of data to show:
 condition_nr    = 1;        % Which condition nr to make plots for? Use 1 for data with only a single condition
 channels        = [1:32];   % Which channels to include
-trials          = [1:30];   % Which trial numbers to include. Use a single trial to plot a 'canonical' raster plot
+trials          = [1];   % Which trial numbers to include. Use a single trial to plot a 'canonical' raster plot
 
 % How much of the data to show and what time bins to use?
-psth_win        = [-.2 .3];  % sets x-axis values for all plots
+psth_win        = [0 10];  % sets x-axis values for all plots
 psth_offset     = 1;        % set this time to zero (e.g. whisker stimulus time, opto stimulus time)
-binsize         = [0.005];  % bin size for psth
+binsize         = [0.01];  % bin size for psth
 
 
 %% Change the following variables as necessary:
@@ -36,15 +36,15 @@ split_rows      = 'channels'; % 'trials' or 'channels'. 'Trials' has one row for
 
 % Saving options for output figures (Note - will overwrite files of the same name if script is re-run) 
 save_fig        = false; % If false, no figures are automatically saved; if true, figures are saved in directory and format specified below
-save_dir        = 'Path/To/Figure/Directory';
-fig_format      = '-dpng'; % '-depsc' for vector graphics or '-dpng' for png image file
+save_dir        = '/Users/Joram/Dropbox/Akerman Postdoc/Figures/Test';
+fig_format      = '-depsc'; % '-depsc' for vector graphics or '-dpng' for png image file
 
 
 % Shaded regions in graphs? Currently 2 shades are supported but it should be obvious
 % from this script how to add additional shaded regions if required:
 
 do_shade1       = true;    % 
-shade1_colour   = 'r';
+shade1_colour   = 'c';
 shade1_alpha    = 0.7;
 shade1_xvals    = [0 0.005]; % time window for shaded region 1
 
@@ -57,9 +57,9 @@ shade2_xvals    = [0.025 0.1]; % time window for shaded region 2
 % Only for continuous RWS where data are stored as lots of small trials
 % this triggers the generation of a number of 'sweeps' to show multiple 
 % repeats of a continuously repeating stimulus on the same row
-RWS_continuous 	= false;    % leave to false unless the above is true
-n_reps          = 8;        % for repeating stimuli, how many repeats to show in one 'sweep'
-do_offset_corr  = false;    % if there is an accumulating offset between repeats due to PulsePal script bug, this allows for correction
+RWS_continuous 	= true;    % leave to false unless the above is true
+n_reps          = 80;        % for repeating stimuli, how many repeats to show in one 'sweep'
+do_offset_corr  = true;    % if there is an accumulating offset between repeats due to PulsePal script bug, this allows for correction
 offset_val      = 0.0002;   % value for offset (correcting for drift caused by bug in PulsePal protocol)
 
 % Axis labels; Y-axis for raster is given by split_rows
@@ -69,7 +69,8 @@ x_ax_label  = 'Time (s)';
 
 load(data_file); % This loads 'ephys_data' struct
 
-spikes  = ephys_data.conditions(condition_nr).spikes; % get spikes from the relevant condition
+spikes          = ephys_data.conditions(condition_nr).spikes; % get spikes from the relevant condition
+LFP_traces      = ephys_data.conditions(condition_nr).LFP_trace;
 
 %% For continuous rhythmic whisker stimulation - generate a number of fake 'sweeps' with multiple trials to show repetitive nature of stimulus
 if RWS_continuous
@@ -83,15 +84,21 @@ if RWS_continuous
     end
     
     % generate new spikes where each 'trial' incorporates several trials
+    % 
+    new_LFPs    = [];
     new_spikes  = [];
     for a = 1:size(spikes,2)/n_reps
-        spike_reps = [];
+        spike_reps  = [];
+        LFP_reps    = [];
         for b = 1:n_reps
-            spike_reps = cat(3,spike_reps,spikes(:,(a-1)*b+b,:)+(b-1)*0.125);
+            spike_reps  = cat(3,spike_reps,spikes(:,(a-1)*b+b,:)+(b-1)*0.125);
+            LFP_reps    = cat(3,LFP_reps,LFP_traces(:,(a-1)*b+b,:));
         end
-        new_spikes = [new_spikes spike_reps];
+        new_spikes  = [new_spikes spike_reps];
+        new_LFPs    = [new_LFPs LFP_reps];
     end
-    spikes = new_spikes;
+    spikes      = new_spikes;
+    LFP_traces  = new_LFPs;
 end
 
 %% Which dimension to split on
@@ -107,7 +114,7 @@ end
 
 %% Raster plot
 
-figure(1)
+figure
 
 raster_plot(spikes(channels,trials,:)-psth_offset,split_dim);
 
@@ -134,22 +141,13 @@ end
 
 %% Post-stimulus time histogram
 
-figure(2)
+figure
 
 spike_density_plot(spikes(channels,trials,:) - psth_offset,split_dim,[psth_win(1):binsize:psth_win(2)]);
 
 title([fig_title ' spike density plot'])
 xlabel(x_ax_label)
 ylabel(y_ax_label)
-
-% Note - shaded_region currently not supported on image / heatmap data
-% if do_shade1
-%     shaded_region(shade1_xvals, shade1_colour, shade1_alpha);
-% end
-% 
-% if do_shade2
-%     shaded_region(shade2_xvals, shade2_colour, shade2_alpha);
-% end
 
 if save_fig
     save_file   = fullfile(save_dir, ['Spike density plot ' fig_title]);
@@ -158,7 +156,7 @@ end
 
 %% PSTH
 
-figure(3)
+figure
 
 target_spikes 	= spikes(channels,trials,:); % get relevant spikes
 
@@ -184,22 +182,22 @@ end
 
 %% LFP average across trials / channels, aligned with rasterplot idea
 
-figure(4)
+figure
 
-LFP_traces      = ephys_data.conditions(condition_nr).LFP_trace(channels,trials,:);
+LFP_traces      = LFP_traces(channels,trials,:); % ephys_data.conditions(condition_nr).LFP_trace(channels,trials,:);
 LFP_timepoints  = (1:size(LFP_traces,3))/1000 - psth_offset;
 q_LFP           = LFP_timepoints > psth_win(1) & LFP_timepoints < psth_win(2);
 
 switch split_rows
     case 'trials'
-        mean_LFP_traces     = squeeze(mean(LFP_traces,1));
+        LFP_split_dim = 2; % mean_LFP_traces     = squeeze(mean(LFP_traces,1));
     case 'channels'
-        mean_LFP_traces     = squeeze(mean(LFP_traces,2));
+        LFP_split_dim = 1; % mean_LFP_traces     = squeeze(mean(LFP_traces,2));
 end
 
-mean_LFP_traces = notch_filt(mean_LFP_traces',1000,50)'; % remove 50Hz noise
+% mean_LFP_traces = notch_filt(mean_LFP_traces',1000,50)'; % remove 50Hz noise
 
-plot_LFPs_by_channel(mean_LFP_traces(:,q_LFP),LFP_timepoints(q_LFP),.5);
+plot_LFP_traces(LFP_traces(:,:,q_LFP),LFP_split_dim,LFP_timepoints(q_LFP),.2);
 
 title([fig_title ' LFP by ' split_rows])
 axis tight
@@ -225,16 +223,15 @@ end
 
 % To do: superimpose LFPs from individual trials?
 
-figure(5)
+figure
 
-LFP_traces      = ephys_data.conditions(condition_nr).LFP_trace(channels,trials,:);
 LFP_timepoints  = (1:size(LFP_traces,3))/1000 - psth_offset;
 q_LFP           = LFP_timepoints > psth_win(1) & LFP_timepoints < psth_win(2);
 
 switch split_rows
-    case 'Trials'
+    case 'trials'
         mean_LFP_traces     = squeeze(mean(LFP_traces,1));
-    case 'Channels'
+    case 'channels'
         mean_LFP_traces     = squeeze(mean(LFP_traces,2));
 end
 
