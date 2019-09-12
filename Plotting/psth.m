@@ -1,5 +1,7 @@
 function [psth_handle, counts, binedges] = psth(spike_times,bin_size,psth_win,show_plot)
 % function [PSTH_HANDLE COUNTS BINEDGES] = psth(SPIKE_TIMES,BIN_SIZE,PSTH_WIN,SHOW_PLOT)
+% OR:
+% function [PSTH_HANDLE COUNTS BINEDGES] = psth(SPIKE_TIMES,BINEDGES,SHOW_PLOT)
 % 
 % Makes post-stimulus time histogram of (spike) time data in SPIKE_TIMES.
 % Each data point in SPIKE_TIMES is a spike time (NaNs are ignored).
@@ -9,7 +11,11 @@ function [psth_handle, counts, binedges] = psth(spike_times,bin_size,psth_win,sh
 % 
 % BIN_SIZE specifies the width of the bins in the PSTH in the same units as
 % spike_times (e.g. seconds, milliseconds, etc). If not provided or left 
-% empty this will be decided from the density of the data.
+% empty this will be decided from the density of the data. IF BIN_SIZE is a
+% vector it will be interpreted as user-defined BINEDGES instead -->
+%
+% BINEDGES is a vector that explicitly specifies the edges of the bins used 
+% for the PSTH, and when specified, makes PSTH_WIN obsolete. 
 % 
 % PSTH_WIN is a 2-element vector [TMIN TMAX] that specifies the time range 
 % over which the PSTH is plotted, e.g. if SPIKE_TIMES includes spike times 
@@ -33,16 +39,33 @@ function [psth_handle, counts, binedges] = psth(spike_times,bin_size,psth_win,sh
 % 
 % Joram van Rheede 22/03/2019
 
-% Default: plot the PSTH as a bar graph
-if nargin < 4
-	show_plot   = true;
+%
+if length(bin_size) > 1
+    % If the bin_size input instead contains BIN EDGES, set flag q_edges to
+    % true and rename variables appropriately
+    binedges        = bin_size;
+    q_edges         = true;
+    
+    if nargin < 3
+        show_plot   = true;
+    else
+        show_plot 	= psth_win; % Otherwise, 'psth_win' should now contain the 'show_plot' variable
+    end
+else
+    q_edges         = false;
+    
+    if nargin < 4
+        show_plot   = true; % Default is to show the PSTH plot
+    end
 end
 
 % Vectorise spike_times into an N spikes x 1 vector
 spike_times     = spike_times(:);
 
 % Let input variables determine how to run histcounts:
-if ~exist('psth_win','var') && ~exist('bin_size','var')
+if q_edges
+    [counts binedges] 	= histcounts(spike_times,binedges);
+elseif ~exist('psth_win','var') && ~exist('bin_size','var')
     % Use histcounts built in best bin size and bin limits set by the range of the data
 	[counts binedges]	= histcounts(spike_times);
     psth_win            = [min(binedges) max(binedges)];
