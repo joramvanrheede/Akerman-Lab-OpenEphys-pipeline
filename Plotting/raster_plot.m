@@ -82,6 +82,9 @@ end
 % Because your spikes are tight AF:
 axis tight
 
+% 'line' function by default seems to leave 'hold' set to 'on'
+hold off
+
 % invert y axis so that figure can be read from top to bottom (i.e. top row
 % is the first / most superficial channel, or the first trial / sweep)
 axis ij
