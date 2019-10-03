@@ -40,17 +40,21 @@ function [psth_handle, counts, binedges] = psth(spike_times,bin_size,psth_win,sh
 % Joram van Rheede 22/03/2019
 
 %
-if length(bin_size) > 1
+if exist('bin_size','var') && length(bin_size) > 1
     % If the bin_size input instead contains BIN EDGES, set flag q_edges to
     % true and rename variables appropriately
     binedges        = bin_size;
-    q_edges         = true;
     
     if nargin < 3
         show_plot   = true;
     else
         show_plot 	= psth_win; % Otherwise, 'psth_win' should now contain the 'show_plot' variable
     end
+    
+    bin_size        = median(diff(binedges));
+    psth_win        = [binedges(1) binedges(end)];
+    q_edges         = true;
+    
 else
     q_edges         = false;
     
@@ -90,6 +94,7 @@ if show_plot
     % Plot the histogram using Matlab's bar function; offset binedges by .5
     % binsize so that the edge of the first bar starts at 0, set colour to
     % black, and set bar width to 1 so there are no gaps between bars
+    
     psth_handle     = bar(binedges(1:end-1)+0.5*bin_size,counts,'FaceColor',[0 0 0],'EdgeColor',[0 0 0],'BarWidth',1); % plot the spike counts vs time bins
     % Tighten the x-axis around the bar plot
     xlim(psth_win)
