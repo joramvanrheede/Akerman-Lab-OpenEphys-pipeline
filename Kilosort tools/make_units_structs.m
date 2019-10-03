@@ -4,7 +4,7 @@
 % /Volumes/Akermanlab/Joram/Spike_sorting/2019_03_09-_1_3_4_5_6
 
 
-Kilosort_dir    = ['/Volumes/Akermanlab/Joram/Spike_sorting/2019_07_12-_1_2_4_5_6_7_9_10_11_12_13_14_15_16_18_19_20'];
+Kilosort_dir    = ['/Volumes/Akermanlab/Joram/Spike_sorting/2019_09_16-_12'];
 raw_data_dir    = []; % 
 
 do_units_only   = true;
@@ -25,23 +25,16 @@ cluster_numbers = sp.cids;
 
 [spikeAmps, spikeDepths, templateDepths, tempAmps, tempsUnW, templateDuration, waveforms] = templatePositionsAmplitudes(sp.temps, sp.winv, sp.ycoords, sp.spikeTemplates, sp.tempScalingAmps);
 
-keyboard
-
-
-
-cluster_depths = unique([spikeDepths, cluster_ids],'rows')
-
-
-
-
-
-
-
+% Get depth of cluster
+cluster_depths = unique([cluster_ids, spikeDepths],'rows');
 
 is_unit         = cluster_groups == 2;
 is_mua          = cluster_groups == 1;
 
 unit_clusters   = cluster_numbers(is_unit);
+unit_depths     = cluster_depths(is_unit,2);
+
+[sort_depths, depth_order]  = sort(unit_depths);
 
 is_unit_spike   = ismember(cluster_ids,unit_clusters);
 
@@ -117,7 +110,7 @@ for a = 1:length(sync_data)
     for b = 1:length(sync_data(a).conditions)
         for c = 1:length(sync_data(a).conditions(b).trial_starts)
             for d = 1:n_clusters
-                this_cluster    = uniq_clusters(d);
+                this_cluster    = uniq_clusters(depth_order(d));
                 q_cluster       = cluster_ids == this_cluster;
                 
                 % Make relative to Kilosort concatenated data time, not openephys recording time stamp
@@ -139,3 +132,5 @@ for a = 1:length(sync_data)
         sync_data(a).conditions(b).spikes(sync_data(a).conditions(b).spikes == 0) = NaN;
     end
 end
+
+sync_data(a).unit_depths = sort_depths;
