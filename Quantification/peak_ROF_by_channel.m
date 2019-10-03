@@ -1,4 +1,4 @@
-editfunction [peak_rate_of_fire, peak_time] = peak_ROF_by_channel(spikes,time_win,kernel_size,sample_rate)
+function [peak_rate_of_fire, peak_time] = peak_ROF_by_channel(spikes,time_win,kernel_size,sample_rate)
 % function [PEAK_RATE_OF_FIRE, PEAK_TIME] = peak_ROF_by_channel(SPIKES,TIME_WIN,KERNEL_SIZE, SAMPLE_RATE)
 % 
 % Returns estimate of peak rate of fire within a time window as well as the 
