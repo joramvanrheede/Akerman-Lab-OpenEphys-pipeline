@@ -444,11 +444,11 @@ cond_nrs        = 1:size(conditions,1);
 % initialise butterworth bandpass filter
 samplefreq = 30000;
 
-[filt_b,filt_a]           = butter(2, [500 5000]/(samplefreq/2));
+[filt_b,filt_a]       	= butter(2, [500 5000]/(samplefreq/2));
 
-[LFPfilt_b, LFPfilt_a]    = butter(2, [1 300]/(samplefreq/2));
-LFPtraces       = [];
-LFPtimestamps  	= [];
+[LFPfilt_b, LFPfilt_a] 	= butter(2, [1 300]/(samplefreq/2));
+LFPtraces            	= [];
+LFPtimestamps           = [];
 
 if qspike_detection || get_LFP % 'manual' spike detection in matlab
 
