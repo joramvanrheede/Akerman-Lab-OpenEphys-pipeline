@@ -1,17 +1,27 @@
 function metadata_info = read_metadata(metadata,headers,date_string,rec_number)
-% METADATA_INFO = read_metadata(METADATA_FILE,HEADERS,DATE_STRING,REC_NUMBER)
+% METADATA_INFO = read_metadata(METADATA,HEADERS,DATE_STRING,REC_NUMBER)
 %
-% METADATA_INFO: Information from the metadata file (METADATA_FILE) regarding
-% the target recording number (REC_NUMBER) from the target date (DATE_STRING).
-%
-%
+% Extract METADATA_INFO from METADATA and HEADERS (obtained with LOAD_METADATA 
+% function).
+% 
+% INPUTS:
+% 
 % METADATA: Metadata loaded using LOAD_METADATA
+%
 % HEADERS: Headers for METADATA, obtained from LOAD_METADATA
 %
 % DATE_STRING: Target date in format 'yyyy_mm_dd' (as entered in metadata file!)
 %
 % REC_NUMBER: number indicating which recording number from the given date
 % you want to get metadata for.
+%
+% OUTPUT:
+% 
+% METADATA_INFO: Information from the metadata file (METADATA_FILE) regarding
+% the target recording number (REC_NUMBER) from the target date (DATE_STRING).
+%
+%
+
 
 
 %% global analysis metadata_info
@@ -135,6 +145,16 @@ metadata_info.experiment_type       = metadata{q_select,expt_col};             %
 
 metadata_info.override_conds        = metadata{q_select,override_col};
 metadata_info.n_conds               = metadata{q_select,n_cond_col};
+
+% New additions to metadata file - if not present, default to 0 / false
+if ~isempty(trials_from_whisk_col)
+    metadata_info.trials_from_whisk     = metadata{q_select,trials_from_whisk_col};
+    metadata_info.whisk_buffer          = metadata{q_select,whisk_buffer_col};
+else
+    metadata_info.trials_from_whisk     = 0;
+    metadata_info.whisk_buffer          = 0;
+end
+
 metadata_info.trials_from_whisk     = metadata{q_select,trials_from_whisk_col};
 metadata_info.whisk_buffer          = metadata{q_select,whisk_buffer_col};
 
