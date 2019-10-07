@@ -66,6 +66,8 @@ whisk_res_col   = find(strcmpi('Whisker timing minimal increment',headers)); % M
 LED_res_col     = find(strcmpi('LED timing minimal increment',headers)); % Minimal increment for automatic extraction of LED timing conditions
 spontwin_col    = find(strcmpi('Spontwin max',headers)); % Window at the start of each trial but before any whisk or LED stim, to use as a measure of spontaneous activity
 
+trials_from_whisk_col   = find(strcmpi('Trials from whisk',headers));
+whisk_buffer_col        = find(strcmpi('Whisk buffer',headers));
 
 % find experiment date; see if this date is within the processing range
 all_dates       = metadata(:,date_col);
@@ -87,6 +89,7 @@ elseif sum(q_select) > 1
 end
 
 % Extract other relevant data
+metadata_info.experiment_date       = date_string;
 metadata_info.animal_ID             = metadata{q_select,ID_col};
 metadata_info.animal_type           = metadata{q_select,type_col};
 metadata_info.probe_type            = metadata{q_select,probe_col};
@@ -135,6 +138,8 @@ metadata_info.experiment_type       = metadata{q_select,expt_col};             %
 
 metadata_info.override_conds        = metadata{q_select,override_col};
 metadata_info.n_conds               = metadata{q_select,n_cond_col};
+metadata_info.trials_from_whisk     = metadata{q_select,trials_from_whisk_col};
+metadata_info.whisk_buffer          = metadata{q_select,whisk_buffer_col};
 
 metadata_info.animal_type           = metadata(q_select,type_col);
 metadata_info.target_whisker        = metadata(q_select,whisk_col);
