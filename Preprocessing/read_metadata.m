@@ -1,11 +1,12 @@
-function metadata_info = read_metadata(metadata_file,date_string,rec_number)
-% METADATA_INFO = read_metadata(METADATA_FILE,DATE_STRING,REC_NUMBER)
+function metadata_info = read_metadata(metadata,headers,date_string,rec_number)
+% METADATA_INFO = read_metadata(METADATA_FILE,HEADERS,DATE_STRING,REC_NUMBER)
 %
 % METADATA_INFO: Information from the metadata file (METADATA_FILE) regarding
 % the target recording number (REC_NUMBER) from the target date (DATE_STRING).
 %
 %
-% METADATA_FILE: Full path to metadata file.
+% METADATA: Metadata loaded using LOAD_METADATA
+% HEADERS: Headers for METADATA, obtained from LOAD_METADATA
 %
 % DATE_STRING: Target date in format 'yyyy_mm_dd' (as entered in metadata file!)
 %
@@ -21,10 +22,6 @@ channel_order_32ch  = [1 17 16 32 3 19 14 30 9 25 10 20 8 24 2 29 7 26 15 21 11 
 
 %% running code starts here
 
-% Read excel file containing metadata
-[num, text, metadata] = xlsread(metadata_file,1);
-headers         = metadata(1,:); % top line contains the headers for the columns
-metadata        = metadata(2:end,:); % the rest is data
 
 % Find relevant columns in excel file; note that by using strcmpi the column
 % order of the excel file is not fixed and it is easy to add extra columns,

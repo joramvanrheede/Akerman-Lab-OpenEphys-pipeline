@@ -1,7 +1,9 @@
 function [sorted_ephys_data] = sync_Kilosort_spikes(Kilosort_dir)
 % function [sorted_ephys_data] = sync_Kilosort_spikes(Kilosort_dir)
 % Takes output from Kilosort and pre-made sync_data structure and puts them together
-% 
+% sorted_ephys_data should be equivalent to the 'ephys_data' structure for multichannel
+% multiunit data, only in 'spikes', the first dimension is sorted 'good' units rather
+% than channels.
 % 
 
 %% Constant - unlikely to change unless we change acquisition system
