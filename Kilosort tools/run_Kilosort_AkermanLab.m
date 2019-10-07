@@ -1,25 +1,23 @@
 function run_Kilosort_AkermanLab(data_folder, sort_folder, target_rec_nrs, metadata_file, n_channels, varargin)
-% function run_Kilosort_AkermanLab(data_folder, sort_folder, target_rec_nrs, events_chans, n_channels, varargin)
+% function run_Kilosort_AkermanLab(data_folder, sort_folder, target_rec_nrs, metadata_file, n_channels, varargin)
 % 
 % Your one-stop-shop for running Kilosort in the Akerman lab pipeline.
 % 
 % Takes openepys .continuous data, reformats it as Kilosort-compatible raw
 % binary, applies common average referencing, copies relevant Kilosort running
-% and config files, links data up with stimulus synchronisation TTL pulses
-% on the OpenEphys ADC channels, and runs the Kilosort algorithm in the
-% target folder.
+% and config files, retrieves relevant metadata and stimulus synchronisation 
+% TTL pulses on the OpenEphys ADC channels, and runs the Kilosort algorithm 
+% in the target folder.
 % 
 % REQUIRED ARGUMENTS:
-% DATA_FOLDER: The data folder containing the OpenEphys .continuous files
+% DATA_FOLDER: The data folder containing the OpenEphys .continuous files.
 % SORT_FOLDER: The folder where the spike sorting files will be kept. Will 
 % be created if it does not yet exist.
-% TARGET_REC_NRS: Recording nrs to be concatenated and sorted
+% TARGET_REC_NRS: Recording nrs to be concatenated and sorted.
+% METADATA_FILE: Full path to the metadata file with the info for the relevant
+% recordings.
 % 
-% OPTIONAL:
-% 
-% EVENTS_CHANS: ADC hannel numbers for synchronisation:
-% [Trials Whisk Opto Stim_nr] --> defaults to [1 1 3 2]
-% 
+% Optional:
 % N_CHANNELS: Number of channels of data. Defaults to 32.
 % 
 % VARARGIN (CURRENTLY NON-FUNCTIONAL):
@@ -33,10 +31,6 @@ function run_Kilosort_AkermanLab(data_folder, sort_folder, target_rec_nrs, metad
 % of some bits on others.
 % 
 % 
-
-if nargin < 4
-    events_chans    = [1 1 3 2]; % [Trials Whisk Opto Stim_nr]
-end
 
 if nargin < 5
     n_channels      = 32; % Number of channels
@@ -147,6 +141,8 @@ end
 if run_kilosort
     disp('Starting Kilosort sorting...')
     current_dir = cd;
+    
+    % Move current directory to relevant sort folder
     cd(sort_folder)
     Master_spike_sort
     cd(current_dir);
