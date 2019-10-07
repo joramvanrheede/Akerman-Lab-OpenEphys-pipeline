@@ -1,4 +1,4 @@
-function run_Kilosort_AkermanLab(data_folder, sort_folder, target_rec_nrs, events_chans, n_channels, varargin)
+function run_Kilosort_AkermanLab(data_folder, sort_folder, target_rec_nrs, metadata_file, n_channels, varargin)
 % function run_Kilosort_AkermanLab(data_folder, sort_folder, target_rec_nrs, events_chans, n_channels, varargin)
 % 
 % Your one-stop-shop for running Kilosort in the Akerman lab pipeline.
@@ -96,25 +96,34 @@ end
 q_protocols             = ismember(protocol_nrs,target_rec_nrs);
 
 concatenate_folders     = protocol_folders(q_protocols);
-
-%% convert to raw binary format and concatenate in one step:
+rec_nrs                 = protocol_nrs(q_protocols);
 
 % loop to add full file path to the folder names
 for c = 1:length(concatenate_folders)
     concatenate_folders{c} = [data_folder filesep concatenate_folders{c}];
 end
 
-%% Stimulus synchronisation data (from TTL inputs)
+%% Stimulus synchronisation data (from TTL inputs and Metadata file)
 if get_sync_data
+    
+    [~, date_string]        = fileparts(data_folder);
+    
+    [metadata, headers]     = load_metadata(metadata_file);
+    
     for i = 1:length(concatenate_folders)
-        sync_data(i)    = get_stim_sync_data(concatenate_folders{i},events_chans);
+        
+        metadata_info           = read_metadata(metadata, headers, date_string, rec_nrs(i));
+        
+        sync_data(i)            = get_stim_sync_data(concatenate_folders{i},metadata_info);
+        
     end
     save(fullfile(sort_folder,'sync_data'),'sync_data')
 end
 
 full_dat_file_name   = fullfile(sort_folder, dat_file_name);
 
-%% 
+%% convert to raw binary format and concatenate in one step:
+
 if do_dat_and_concat    
     % full file path of the .dat file
     
