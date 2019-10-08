@@ -155,9 +155,6 @@ else
     metadata_info.whisk_buffer          = 0;
 end
 
-metadata_info.trials_from_whisk     = metadata{q_select,trials_from_whisk_col};
-metadata_info.whisk_buffer          = metadata{q_select,whisk_buffer_col};
-
 metadata_info.animal_type           = metadata(q_select,type_col);
 metadata_info.target_whisker        = metadata(q_select,whisk_col);
 
