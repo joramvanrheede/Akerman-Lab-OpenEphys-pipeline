@@ -329,8 +329,6 @@ for a = 1:length(opto_firsts)
         this_opto_freq  = 99;
     elseif isnan(this_opto_freq)
         this_opto_freq  = 99;
-    elseif this_opto_freq > max_opto_freq
-        this_opto_freq  = 99;
     end
     
     opto_freqs(a)      = this_opto_freq;
