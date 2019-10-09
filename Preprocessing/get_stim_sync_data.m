@@ -392,7 +392,7 @@ for a = 1:ntrials
     if sum(select_opto_start) == 1 && sum(select_opto_end) == 1
         opto_onsets(a)           = opto_firsts(select_opto_start);
         opto_offsets(a)          = opto_lasts(select_opto_end);
-        opto_current_levels(a)   = max([opto_powers(select_opto_start) opto_powers(select_opto_end)]);
+        opto_current_levels(a)   = max([opto_amps(select_opto_start) opto_amps(select_opto_end)]);
         opto_freq(a)             = opto_freqs(select_opto_start);
     elseif sum(select_opto_start) > 1 || sum(select_opto_end) > 1
         warning('Multiple opto stimulus values found for this trial')
