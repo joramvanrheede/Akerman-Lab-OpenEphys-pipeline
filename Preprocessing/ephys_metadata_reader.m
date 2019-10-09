@@ -1,32 +1,29 @@
-%% 
+%% MUE preprocessing script
 
-metadata_file       = '/Volumes/PS2Akermanlab/Joram/Data/in vivo metadata/AVK/AVK Metadata.xlsx'; % Which metadata file to use?
+metadata_file       = '/Volumes/PS2Akermanlab/Joram/Data/in vivo metadata/Metadata File.xlsx'; % Which metadata file to use?
 
-data_folder         = '/Volumes/Akermanlab/Joram/In_vivo_mouse_data';   %'/Volumes/Akermanlab-1/Joram/In vivo mouse data'; % Where are the data? 
+data_folder         = '/Volumes/PS2Akermanlab/MJB/In_Vivo';   %'/Volumes/Akermanlab-1/Joram/In vivo mouse data'; % Where are the data? 
 
-save_folder         = '/Volumes/Akermanlab/Joram/Preprocessed data/AVK POM';  %/Volumes/Akermanlab-1/Joram/Extracted data'; % Where to save output?
+save_folder         = '/Volumes/Akermanlab/Joram/Preprocessed data/AVK S1';  %/Volumes/Akermanlab-1/Joram/Extracted data'; % Where to save output?
 
-start_date          = '2019_07_19';     % format: 'yyyy_mm_dd'; Process files from this date onwards
-end_date            = '2019_07_19';     % format: 'yyyy_mm_dd'; Process files up until this date
+start_date          = '2019_10_07';     % format: 'yyyy_mm_dd'; Process files from this date onwards
+end_date            = '2019_10_07';     % format: 'yyyy_mm_dd'; Process files up until this date
 
-process_expts       = {'LED_ramp'};          % indicate which experiment types to run, e.g.: {'Drive', 'Timing'}, or use {'All'}
+process_expts       = {'Ramp'};          % indicate which experiment types to run, e.g.: {'Drive', 'Timing'}, or use {'All'}
 
+%% Change these only in exceptional cases
 get_LFP             = true;             % get LFP traces? This does increase output data size
-
 trials_from_whisk   = false;          	% discard trial information from ADC channels and determine trials based on whisker instead?
 whisk_buffer        = 3;              % 0.0625 	% if using whisk stim to divide recording into trials (above), trials start whisk_buffer (in seconds) before the whisker stim onset, and end 2*whisk buffer after whisker stim ONSET
 
+%% These things shouldn't really change
 data_output         = 'new';            % 'new': improved data structure, or 'old': 'channels' style data structure do
-
 do_CAR              = true;             % Do common average referencing?
 save_sync_chans     = true;
 sync_chans_res      = 1000;
-
-%% global analysis parameters
-
 q_spike_detection   = 1;      % do spike detection, or use detected spikes from openephys?
 
-% set this up for different probe types:
+%% HARDCODED CHANNEL MAPS!!!
 channel_order_16ch  = [13 29 4 20 15 31 3 19 16 32 1 17 2 18 14 30]; %% Corrected 08/02/2019 % 16ch linear silicon A16 probe neuronexus: 
 channel_order_32ch  = [1 17 16 32 3 19 14 30 9 25 10 20 8 24 2 29 7 26 15 21 11 23 12 28 6 18 13 22 5 27 4 31]; % Corrected 08/02/2019
 
