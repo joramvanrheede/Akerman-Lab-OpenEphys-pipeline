@@ -50,6 +50,8 @@ function [sync_data] = get_stim_sync_data(datafolder,metadata_info,trials_from_w
 % if inter-whisk_interval > whisk_buffer --> new trial.
 % 
 
+% Do we get events_channels only? Or an actual struct pre-populated with metadata information
+% as produced by READ_METADATA?
 if ~isstruct(metadata_info)
     events_chans            = metadata_info;
     % Unpack 
@@ -428,7 +430,7 @@ whisk_delays                = round((whisk_stim_onsets(:) - trial_starts(:)) / w
 
 % recover LED durations
 opto_durations           	= opto_offsets - opto_onsets;
-opto_durations              = round(opto_durations(:) / 5,3) * 5;
+opto_durations              = round(opto_durations(:) / opto_conditions_res,3) * opto_conditions_res;
 
 % reconstruct trial matrix
 trial_conditions         	= [whisk_delays(:) whisk_stim_relay(:)  whisk_stim_amplitudes(:)  whisk_stim_freqs(:) round(1./whisk_stim_lengths(:)) opto_delays(:) opto_durations(:) opto_current_levels(:)];
