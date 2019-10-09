@@ -1,7 +1,6 @@
-function [ephys_data] = extract_ephys_data(datafolder,datafilenr,qspike_detection,parameters)
+function [ephys_data] = extract_ephys_data(datafolder,datafilenr,parameters)
 
 data_prefix             = parameters.data_prefix;           % = '100';
-q_digital_events        = parameters.digital_events;        % 1/0% events determined using openephys event detection
 spike_thresh            = parameters.spike_thresh;          % spike threshold in SDs
 LED_conditions_res      = parameters.LED_conditions_res;    % resolution in ms for automatically extracting conditions from LED delays
 whisk_conditions_res    = parameters.whisk_conditions_res;  % resolution in ms for automatically extracting conditions from whisker delays
@@ -12,8 +11,6 @@ opto_input_nr        	= parameters.LED_channel;           % Which input channel 
 switch_input_nr         = parameters.stim_switch_channel;  	% Which input channel switches between stimulators?
 q_override              = parameters.override_conds;        % Override TTL-based condition structure?
 n_conds                 = parameters.n_conds;               % Number of conditions if using override
-
-qmorse                  = parameters.morse;                 % use trial start/end morse code?
 
 expt_type               = parameters.experiment_type;       % what type of experiment is this?
 
@@ -31,14 +28,10 @@ sync_chans_res          = parameters.sync_chans_res;        % resolution for the
 
 %% Hard-coded parameters
 
-samplefreq              = 30000;                        
+samplefreq              = 30000;
 spike_filt_band         = [500 5000];
 LFP_filt_band           = [1 300];
 max_opto_freq           = 100;
-
-% Is this still needed?
-morse_start             = [3 1 3 1 3]; % morse code for start of trial; short = 1, long = 3;
-morse_stop              = [1 1 1 3 1 3]; % morse code for end of trial; short = 1, long = 3;
 
 %% some file I/O pre-work
 
@@ -64,123 +57,90 @@ filefolder              = filefolders{fileind}; % this is the folder we're after
 
 %% Start collecting events data
 
-if q_digital_events % do we use digital events recorded by openephys? if so use 'all_channels.events' file
-    [events timestamps info] = load_open_ephys_data([datafolder filesep filefolder filesep 'all_channels.events']);
+if switch_input_nr ~= 0
+    trial_threshold     = 0.25; % For trial, signal goes up to 2.5V or less
+    stim_threshold      = 2.7; % For whisking (always during trial), signal goes up to 2.75 - 5V
+    opto_threshold   	= 0.25; % normal TTL logic - 0 to 5V
+    switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
+else
+    trial_threshold     = 0.25; % normal TTL logic - 0 to 5V
+    stim_threshold      = 2.5; % normal TTL logic - 0 to 5V
+    opto_threshold    	= 0.25; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
+    switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
+end
+
+adc_channel_nrs        	= [trial_input_nr stim_input_nr opto_input_nr switch_input_nr];
+adc_channel_thresholds 	= [trial_threshold stim_threshold opto_threshold switch_threshold];
+
+for a = 1:4 % loop through the analog input channels
     
-    % get events for trial, stim, LED. input nr - 1 because of sensible
-    % vs. programmer counting
-    trial_starts    = timestamps(events == trial_input_nr - 1 & info.eventId == 1);
-    trial_ends      = timestamps(events == trial_input_nr - 1 & info.eventId == 0);
-    stim_starts  	= timestamps(events == stim_input_nr - 1 & info.eventId == 1);
-    stim_ends       = timestamps(events == stim_input_nr - 1 & info.eventId == 0);
-    opto_starts   	= timestamps(events == opto_input_nr - 1 & info.eventId == 1);
-    opto_ends     	= timestamps(events == opto_input_nr - 1 & info.eventId == 0);
-    switch_up       = timestamps(events == switch_input_nr - 1 & info.eventId == 1);
-    switch_down     = timestamps(events == switch_input_nr - 1 & info.eventId == 0);
-    
-    % some cleaning up
-    trial_starts(trial_starts > trial_ends(end))   = [];
-    trial_ends(trial_ends < trial_starts(1))       = [];
-    
-else % events need to be extracted manually from the analog input signal.
-    
-    if switch_input_nr ~= 0
-        trial_threshold     = 0.25; % For trial, signal goes up to 2.5V or less
-        stim_threshold      = 2.7; % For whisking (always during trial), signal goes up to 2.75 - 5V
-        opto_threshold   	= 0.25; % normal TTL logic - 0 to 5V
-        switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
-    else
-        trial_threshold     = 0.25; % normal TTL logic - 0 to 5V
-        stim_threshold      = 2.5; % normal TTL logic - 0 to 5V
-        opto_threshold    	= 0.25; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
-        switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
+    if a == 1 || adc_channel_nrs(a) ~= adc_channel_nrs(a-1) % Don't reload data if trace is already loaded
+        disp(['Loading ADC input channel ' num2str(adc_channel_nrs(a))])
+        disp(['File ' datafolder filesep filefolder filesep data_prefix '_ADC' num2str(adc_channel_nrs(a)) '.continuous'])
+        [thisTTL timestamps info] = load_open_ephys_data([datafolder filesep filefolder filesep data_prefix '_ADC' num2str(adc_channel_nrs(a)) '.continuous']);
+        
+        % thisTTL         = thisTTL - min(thisTTL(:));
+        
+        starttime       = min(timestamps); % find start time
+        endtime         = max(timestamps); % find end time
+        timestamps      = (1:length(thisTTL)) / 30000; % manually create new timestamps at 30kHz, openephys sometimes suffers from timestamp wobble even though data acquisition is spot on
+        timestamps      = timestamps + starttime; % add start time to the newly created set of timestamps
     end
     
-    adc_channel_nrs        	= [trial_input_nr stim_input_nr opto_input_nr switch_input_nr];
-    adc_channel_thresholds 	= [trial_threshold stim_threshold opto_threshold switch_threshold];
+    thisTTL_bool   	= thisTTL > adc_channel_thresholds(a); % find where the TTL signal is 'high'
     
-    for a = 1:4 % loop through the analog input channels
-        
-        if a == 1 || adc_channel_nrs(a) ~= adc_channel_nrs(a-1) % Don't reload data if trace is already loaded
-            disp(['Loading ADC input channel ' num2str(adc_channel_nrs(a))])
-            disp(['File ' datafolder filesep filefolder filesep data_prefix '_ADC' num2str(adc_channel_nrs(a)) '.continuous'])
-            [thisTTL timestamps info] = load_open_ephys_data([datafolder filesep filefolder filesep data_prefix '_ADC' num2str(adc_channel_nrs(a)) '.continuous']);
+    start_inds      = find(diff(thisTTL_bool) > 0.5); % find instances where the TTL goes from low to high
+    end_inds        = find(diff(thisTTL_bool) < -0.5); % find instances where the TTL goes from high to low
+    
+    if length(start_inds)>length(end_inds)
+        end_inds = [end_inds length(thisTTL)];
+    end
+    
+    start_times 	= timestamps(start_inds); % find the timestamps of start events
+    end_times    	= timestamps(end_inds); % find the timestamps of end events
+    
+    if ~isempty(start_times) & ~isempty(end_times)  % Some channels may not have events (e.g. stim switch channel if only 1 stimulator used)
+        end_times(end_times < start_times(1))       = []; % discard potential initial end without start
+        start_times(start_times > end_times(end))   = []; % discard potential final start without end
+    end
+    
+    switch a % this determines what the start and end timestamps should be assigned to: trial/trial, LED/opto stim or stim/whisk stim.
+        case 1
+            trial_starts    = start_times(:);
+            trial_ends      = end_times(:);
+        case 2
+            stim_starts 	= start_times(:);
+            stim_ends     	= end_times(:);
             
-            % thisTTL         = thisTTL - min(thisTTL(:));
-            
-            starttime       = min(timestamps); % find start time
-            endtime         = max(timestamps); % find end time
-            timestamps      = (1:length(thisTTL)) / 30000; % manually create new timestamps at 30kHz, openephys sometimes suffers from timestamp wobble even though data acquisition is spot on
-            timestamps      = timestamps + starttime; % add start time to the newly created set of timestamps
-        end
-        
-        thisTTL_bool   	= thisTTL > adc_channel_thresholds(a); % find where the TTL signal is 'high'
-        
-        start_inds      = find(diff(thisTTL_bool) > 0.5); % find instances where the TTL goes from low to high
-        end_inds        = find(diff(thisTTL_bool) < -0.5); % find instances where the TTL goes from high to low
-        
-        if length(start_inds)>length(end_inds)
-            end_inds = [end_inds length(thisTTL)];
-        end
-        
-        start_times 	= timestamps(start_inds); % find the timestamps of start events
-        end_times    	= timestamps(end_inds); % find the timestamps of end events
-        
-        if ~isempty(start_times) & ~isempty(end_times)  % Some channels may not have events (e.g. stim switch channel if only 1 stimulator used)
-            end_times(end_times < start_times(1))       = []; % discard potential initial end without start
-            start_times(start_times > end_times(end))   = []; % discard potential final start without end
-        end
-        
-        switch a % this determines what the start and end timestamps should be assigned to: trial/trial, LED/opto stim or stim/whisk stim.
-            case 1
-                trial_starts    = start_times(:);
-                trial_ends      = end_times(:);
-            case 2
-                stim_starts 	= start_times(:);
-                stim_ends     	= end_times(:);
-                
-                % Determine stimulus amplitude from signal
-                stim_amps       = NaN(size(start_inds));
-                for i = 1:length(start_inds)
-                    stim_segment    = thisTTL(start_inds(i):end_inds(i));
-                    stim_amps(i)   	= ((max(stim_segment) - 2.5) / 2.5) * 100; % Stimulus amplitude in % of max
-                end
-            case 3
-                opto_starts      = start_times(:);
-                opto_ends        = end_times(:);
-                
-                opto_powers      = NaN(size(start_inds));
-                
-                for i = 1:length(start_inds)
-                    stim_segment    = thisTTL(start_inds(i):end_inds(i));
-                    opto_powers(i) 	= max(stim_segment) / 5 * 100; % Stimulus amplitude in % of max
-                end
-            case 4
-                switch_up       = start_times(:);
-                switch_down     = end_times(:);
-        end
-        if save_sync_chans
-            resample_freq               = round(samplefreq / sync_chans_res);
-            sync_chan_traces(:,a)       = thisTTL(1:resample_freq:end);
-            if a == 1
-                sync_chan_timestamps 	= timestamps(1:resample_freq:end);
+            % Determine stimulus amplitude from signal
+            stim_amps       = NaN(size(start_inds));
+            for i = 1:length(start_inds)
+                stim_segment    = thisTTL(start_inds(i):end_inds(i));
+                stim_amps(i)   	= ((max(stim_segment) - 2.5) / 2.5) * 100; % Stimulus amplitude in % of max
             end
+        case 3
+            opto_starts      = start_times(:);
+            opto_ends        = end_times(:);
+            
+            opto_powers      = NaN(size(start_inds));
+            
+            for i = 1:length(start_inds)
+                stim_segment    = thisTTL(start_inds(i):end_inds(i));
+                opto_powers(i) 	= max(stim_segment) / 5 * 100; % Stimulus amplitude in % of max
+            end
+        case 4
+            switch_up       = start_times(:);
+            switch_down     = end_times(:);
+    end
+    if save_sync_chans
+        resample_freq               = round(samplefreq / sync_chans_res);
+        sync_chan_traces(:,a)       = thisTTL(1:resample_freq:end);
+        if a == 1
+            sync_chan_timestamps 	= timestamps(1:resample_freq:end);
         end
     end
 end
 
-% if we're using a morse signal to detect start and end of the protocol,
-% detect morse code for start and end of trials
-if qmorse
-    trial_lengths 	= trial_ends - trial_starts;
-    morse_lengths   = round(trial_lengths * 10);
-    
-    start_ind       = strfind(morse_lengths(:)',morse_start) + length(morse_start);
-    end_ind         = strfind(morse_lengths(:)',morse_stop) - 1;
-    
-    trial_starts    = trial_starts(start_ind:end_ind);
-    trial_ends      = trial_ends(start_ind:end_ind);
-end
 
 %% A lot of cleanup and repair from here
 
@@ -241,9 +201,10 @@ end
 
 allwhisks                   = stim_starts; % ?
 allwhisk_ends               = stim_ends;
+
 %% dealing with bursts of whisker stimuli
 
-first_stim_inds             = find(diff(allwhisks) > total_length/2)+1;
+first_stim_inds             = find(diff(allwhisks) > trial_gap)+1;
 
 if ~isempty(first_stim_inds)
     % Find which whisking onsets are the first of a trial, and which onsets
@@ -266,7 +227,6 @@ end
 whisk_starts            	= [allwhisks(1); allwhisk_firstvect(:)];
 whisk_lasts              	= [allwhisk_lastvect(:); allwhisks(end)];
 
-
 % Stimulus length and repeat frequency
 whisk_lengths              	= whisk_ends - whisk_starts;
 whisk_freqs              	= NaN(size(whisk_starts));
@@ -287,20 +247,21 @@ end
 
 allwhisks             	= whisk_starts;
 
-%% opto burst
+%% Dealing with bursts of opto stimuli
+
 if isempty(opto_starts)
     opto_starts = [0 0.02];
     opto_ends   = [0.01 00.03]; % set some fake opto stimuli outside of the trials
     opto_powers = [1 1];
 end
 
-% Find instances where the difference between a previous and next stimulus 
-% is more than 1/4 trial length; this should be where one trial ends and the
+% Find instances where the difference between a previous and next stimulus
+% is more than the gap between trials; this should be where one trial ends and the
 % next one begins
-first_opto_inds             = find(diff(opto_starts) > total_length/4)+1;
-last_opto_inds              = find(diff(opto_starts) > total_length/4);
+first_opto_inds             = find(diff(opto_starts) > trial_gap)+1;
+last_opto_inds              = find(diff(opto_starts) > trial_gap);
 
-% make sure to include the first onset and the last offset, which will not 
+% make sure to include the first onset and the last offset, which will not
 % be captured by the diff criterion (no gap before the start, no gap after
 % the end)
 first_opto_inds             = [1; first_opto_inds];
@@ -406,10 +367,10 @@ switch expt_type % for each experiment, make sure not to split conditions by oth
         binvec                  = [0:0.0001:2];
         [pks, locs]             = findpeaks(smooth(histc(whisk_stim_lengths,binvec),3),'MinPeakHeight',3);
         length_vals             = binvec(locs);
-        whisk_stim_lengths           = interp1(length_vals,length_vals,whisk_stim_lengths,'nearest','extrap');
+        whisk_stim_lengths     	= interp1(length_vals,length_vals,whisk_stim_lengths,'nearest','extrap');
     otherwise
         median_whisk_length     = nanmedian(whisk_stim_lengths);
-        whisk_stim_lengths         	= repmat(median_whisk_length,size(whisk_stim_lengths));
+        whisk_stim_lengths    	= repmat(median_whisk_length,size(whisk_stim_lengths));
 end
 
 whisk_stim_amplitudes       = round(whisk_stim_amplitudes / 5) * 5; % round to nearest 5%
@@ -456,11 +417,11 @@ LFPtimestamps           = [];
 
 spikes(1:n_channels) 	= struct('times',[]);
 
-%% 
+%%
 
 data_files  = [];
 for a = 1:n_channels
-	data_files{a}       = dir(fullfile(datafolder, filefolder, sprintf('*CH%d.continuous', get_channels(a)) ));
+    data_files{a}       = dir(fullfile(datafolder, filefolder, sprintf('*CH%d.continuous', get_channels(a)) ));
 end
 
 nSamples    = 1024;  % fixed to 1024 for now!
@@ -518,30 +479,29 @@ while flag
         common_average      = mean(CAR_channel_traces,2);
         
         %%
-        b_coeff     = NaN(1,n_channels); 
+        b_coeff     = NaN(1,n_channels);
         for i = 1:n_channels
             [b_coeff(i)]    = regress(channel_traces(:,i),common_average);
         end
         
         CAR_traces          = bsxfun(@times, common_average, b_coeff);
         
-        channel_traces      = channel_traces - CAR_traces;      
+        channel_traces      = channel_traces - CAR_traces;
     end
     
     LFP_by_chan         = [];
     for a = 1:n_channels
-
+        
         % Do simple homebrew spike detection by 1) filtering with bandpass, 2) smoothing and 3) thresholding
         spiketrace        	= filtfilt(filt_b,filt_a,channel_traces(:,a)); % filter data with butterworth bandpass filter to get spike traces
         
-        sigma_n             = median(abs(spiketrace))/0.6745; % Robust standard deviation estimation adopted from Quian Quiroga et al. (2004) 
+        sigma_n             = median(abs(spiketrace))/0.6745; % Robust standard deviation estimation adopted from Quian Quiroga et al. (2004)
         
         q_threshold         = (-spiketrace) > (spike_thresh * sigma_n); % determine standard deviation to determine threshold, detect threshold crossings (negative)
         spike_bool          = diff(q_threshold) == 1; % Determine instances of threshold being crossed
         these_spike_times 	= timestamps(spike_bool); % Get the timestamps of these instances
         
-        spikes(a).times     = [spikes(a).times; these_spike_times(:)]; % 
-        
+        spikes(a).times     = [spikes(a).times; these_spike_times(:)]; %
         
         if get_LFP
             LFPtrace        = filtfilt(LFPfilt_b,LFPfilt_a,channel_traces(:,a));

@@ -21,7 +21,6 @@ data_output         = 'new';            % 'new': improved data structure, or 'ol
 do_CAR              = true;             % Do common average referencing?
 save_sync_chans     = true;
 sync_chans_res      = 1000;
-q_spike_detection   = 1;      % do spike detection, or use detected spikes from openephys?
 
 %% HARDCODED CHANNEL MAPS!!!
 channel_order_16ch  = [13 29 4 20 15 31 3 19 16 32 1 17 2 18 14 30]; %% Corrected 08/02/2019 % 16ch linear silicon A16 probe neuronexus: 
@@ -140,7 +139,6 @@ for a = 1:size(metadata,1)
     
     parameters.digital_events     	= metadata{a,dig_events_col};
     parameters.data_prefix         	= metadata{a,prefix_col};
-    parameters.channelmap         	= metadata{a,chanmap_col};
     parameters.get_LFP              = get_LFP;
     parameters.LED_power            = this_LEDpw;
     
@@ -148,8 +146,6 @@ for a = 1:size(metadata,1)
     parameters.spike_smoothwin    	= metadata{a,smoothw_col};
     parameters.LED_conditions_res	= metadata{a,LED_res_col};
     parameters.whisk_conditions_res = metadata{a,whisk_res_col};
-    parameters.spontwin          	= [0 metadata{a,spontwin_col}]; % start of trial, 0 to X ms
-    parameters.morse                = metadata{a,morse_col};
     
     parameters.trial_channel      	= metadata{a,trialTTL_col};         % Which input channel has the episode TTL
     parameters.whisk_channel     	= metadata{a,whiskTTL_col};         % Which input channel has the piezo / whisk TTL
@@ -178,7 +174,7 @@ for a = 1:size(metadata,1)
     % continue even if there is an error with one particular data file
     try 
         % data extraction function (where it all really happens)
-        ephys_data              	= extract_ephys_data(this_data_folder, this_file, q_spike_detection, parameters);
+        ephys_data              	= extract_ephys_data(this_data_folder, this_file, parameters);
         toc
     catch
         % Report any errors in processing
