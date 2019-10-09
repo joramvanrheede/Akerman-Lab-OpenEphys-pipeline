@@ -7,9 +7,9 @@ function [timing_data] = timing_function(ephys_data, whisk_resp_win, psth_bins)
 % EPHYS_DATA - Variable (struct) containing preprocessed data with spike 
 % times for the different conditions of the timing experiment
 % 
-% CHANNELS - which channels to include
-% 
 % WHISK_RESP_WIN - window for assessing whisker responses, relative to whisker onset time.
+% 
+% PSTH_BINS - bin edges for count data
 % 
 % TIMING_DATA
 % struct with fields:
@@ -159,4 +159,5 @@ timing_data.diff_first_spike_time   = first_spike_jitters - first_spike_jitters(
 timing_data.norm_first_spike_jitter = first_spike_jitters ./ first_spike_jitters(:,end);
 
 timing_data.psth_counts             = psth_counts;
+timing_data.psth_bins               = psth_bins;
 timing_data.spike_density_rates     = spike_density_rates;
