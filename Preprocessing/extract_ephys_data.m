@@ -9,8 +9,6 @@ trial_input_nr          = parameters.trial_channel;         % Which input channe
 stim_input_nr           = parameters.whisk_channel;         % Which input channel has the stim / whisk TTL
 opto_input_nr        	= parameters.LED_channel;           % Which input channel has the LED TTL
 switch_input_nr         = parameters.stim_switch_channel;  	% Which input channel switches between stimulators?
-q_override              = parameters.override_conds;        % Override TTL-based condition structure?
-n_conds                 = parameters.n_conds;               % Number of conditions if using override
 
 expt_type               = parameters.experiment_type;       % what type of experiment is this?
 
@@ -400,11 +398,6 @@ trial_conditions(isnan(trial_conditions)) = 999; % pass numerical flag for missi
 
 conditions(conditions == 999)       = NaN; % replace flag with NaN again so it is clear which stimuli are absent for certain conditions
 
-if q_override
-    conditions  = zeros(n_conds,5);
-    cond_vect   = repmat([1:n_conds]',length(cond_vect)/n_conds,1);
-end
-
 cond_nrs        = 1:size(conditions,1);
 
 %% Get trace data (filter for spikes using 500 - 5000 Hz bandpass; can get LFP filtering e.g. with a 1-300Hz pass)
@@ -434,6 +427,7 @@ for j = 1:n_channels
     fseek(fid{j}, 1024, 0);
 end
 
+%% Common average referencing; OpenEphys reading routine partly adapted from CortexLab/Kilosort 
 nsamps = 0;
 flag = 1;
 while flag
