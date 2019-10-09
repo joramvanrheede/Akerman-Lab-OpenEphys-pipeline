@@ -73,8 +73,8 @@ if q_digital_events % do we use digital events recorded by openephys? if so use 
     trial_ends      = timestamps(events == trial_input_nr - 1 & info.eventId == 0);
     stim_starts  	= timestamps(events == stim_input_nr - 1 & info.eventId == 1);
     stim_ends       = timestamps(events == stim_input_nr - 1 & info.eventId == 0);
-    opto_starts      = timestamps(events == opto_input_nr - 1 & info.eventId == 1);
-    opto_ends        = timestamps(events == opto_input_nr - 1 & info.eventId == 0);
+    opto_starts   	= timestamps(events == opto_input_nr - 1 & info.eventId == 1);
+    opto_ends     	= timestamps(events == opto_input_nr - 1 & info.eventId == 0);
     switch_up       = timestamps(events == switch_input_nr - 1 & info.eventId == 1);
     switch_down     = timestamps(events == switch_input_nr - 1 & info.eventId == 0);
     
@@ -143,7 +143,7 @@ else % events need to be extracted manually from the analog input signal.
                 stim_amps       = NaN(size(start_inds));
                 for i = 1:length(start_inds)
                     stim_segment    = thisTTL(start_inds(i):end_inds(i));
-                    stim_amps(i)   	= ((median(stim_segment) - 2.5) / 2.5) * 100; % Stimulus amplitude in % of max
+                    stim_amps(i)   	= ((max(stim_segment) - 2.5) / 2.5) * 100; % Stimulus amplitude in % of max
                 end
             case 3
                 opto_starts      = start_times(:);
@@ -153,7 +153,7 @@ else % events need to be extracted manually from the analog input signal.
                 
                 for i = 1:length(start_inds)
                     stim_segment    = thisTTL(start_inds(i):end_inds(i));
-                    opto_powers(i) 	= median(stim_segment) / 5 * 100; % Stimulus amplitude in % of max
+                    opto_powers(i) 	= max(stim_segment) / 5 * 100; % Stimulus amplitude in % of max
                 end
             case 4
                 switch_up       = start_times(:);
@@ -405,7 +405,7 @@ switch expt_type % for each experiment, make sure not to split conditions by oth
 end
 
 whisk_stim_amplitudes       = round(whisk_stim_amplitudes / 5) * 5; % round to nearest 5%
-opto_current_levels     = round(opto_current_levels / 5) * 5; % round to nearest 5%
+opto_current_levels         = round(opto_current_levels / 5) * 5; % round to nearest 5%
 
 %% Done with clean-up and event extraction; now determine the different conditions
 
