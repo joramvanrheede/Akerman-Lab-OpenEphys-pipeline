@@ -298,15 +298,25 @@ if isempty(opto_starts)
     opto_powers = [1 1];
 end
 
+% Find instances where the difference between a previous and next stimulus 
+% is more than 1/4 trial length; this should be where one trial ends and the
+% next one begins
+first_opto_inds             = find(diff(opto_starts) > total_length/4)+1;
+last_opto_inds              = find(diff(opto_starts) > total_length/4);
 
-first_opto_inds             = find(diff(opto_starts) > total_length/2)+1;
+% make sure to include the first onset and the last offset, which will not 
+% be captured by the diff criterion (no gap before the start, no gap after
+% the end)
+first_opto_inds             = [1; first_opto_inds];
+last_opto_inds              = [last_opto_inds; length(opto_starts)];
 
 if ~isempty(first_opto_inds)
     opto_firsts                 = opto_starts(first_opto_inds);
-    opto_lasts                  = opto_ends(first_opto_inds-1);
-
-    opto_amps                   = opto_powers(first_opto_inds);
-    opto_amps                   = [opto_amps(1); opto_amps(:)];
+    opto_lasts                  = opto_ends(last_opto_inds);
+    
+    opto_first_amps             = opto_powers(first_opto_inds);
+    opto_last_amps              = opto_powers(last_opto_inds);
+    opto_amps                   = max(opto_first_amps,opto_last_amps);
     
 else
     opto_firsts                 = [];
@@ -315,10 +325,7 @@ else
     opto_burst_ends             = opto_ends;
 end
 
-opto_firsts                 = [opto_starts(1); opto_firsts(:)];
-opto_lasts                  = [opto_lasts(:); opto_ends(end)];
-
-opto_freqs              	= NaN(size(opto_starts));
+opto_freqs                      = NaN(size(opto_starts));
 
 for a = 1:length(opto_firsts)
     this_opto_first     = opto_firsts(a);
