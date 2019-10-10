@@ -1,6 +1,5 @@
 function aligned_traces = align_spikes(data, thresh_val, range, qplot, numtraces)
-
-% function plot_aligned_spikes(datafile, thresh_val, plotrange, numtraces)
+% function align_spikes(datafile, thresh_val, plotrange, numtraces)
 % 
 % Plots spikes detected in signal aligned by negative local peak
 % 
@@ -14,6 +13,25 @@ function aligned_traces = align_spikes(data, thresh_val, range, qplot, numtraces
 % OUTPUT:
 % aligned_traces:   An M x N matrix, where M is the number of traces, and N is 2*plotrange+1
 %
+
+%% Set sensible defaults
+if nargin < 2 || isempty(thresh_val)
+    thresh_val  = 6; % Set relatively conservative 6SD threshold for nice looking spikes
+end
+
+if nargin < 3 || isempty(range)
+    range       = 30; % 30 samples at 30kHz acquisition = 1 ms (on either side of the spike peak)
+end
+
+if nargin < 4 || isempty(qplot)
+    qplot       = 1; % Show plot by default
+end
+
+if nargin < 5
+    numtraces   = 'all'; % plot all traces by default
+end
+
+%% Code execution begins
 
 % Create range indices
 samplerange                 = [(-2*range):(2*range)];   % sample waveform data over larger range than ploting range
