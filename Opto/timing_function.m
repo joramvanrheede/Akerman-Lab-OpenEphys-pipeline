@@ -56,7 +56,12 @@ show_psth           = false; % Flag to not show psth plot from psth function
 
 %% Code execution starts here
 
-whisk_onsets      	= [ephys_data.conditions.whisk_start];
+if isfield(ephys_data.conditions,'whisk_start')
+    whisk_onsets         = [ephys_data.conditions.whisk_start];
+elseif isfield(ephys_data.conditions,'whisk_onset')
+    whisk_onsets         = [ephys_data.conditions.whisk_onset];
+end
+
 
 if isfield(ephys_data.conditions,'opto_onset')
     opto_onsets         = [ephys_data.conditions.opto_onset];
