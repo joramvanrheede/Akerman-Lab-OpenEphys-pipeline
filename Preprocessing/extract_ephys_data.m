@@ -58,12 +58,12 @@ filefolder              = filefolders{fileind}; % this is the folder we're after
 if switch_input_nr ~= 0
     trial_threshold     = 0.25; % For trial, signal goes up to 2.5V or less
     stim_threshold      = 2.7; % For whisking (always during trial), signal goes up to 2.75 - 5V
-    opto_threshold   	= 0.25; % normal TTL logic - 0 to 5V
+    opto_threshold   	= 0.1; % normal TTL logic - 0 to 5V
     switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
 else
     trial_threshold     = 0.25; % normal TTL logic - 0 to 5V
     stim_threshold      = 2.5; % normal TTL logic - 0 to 5V
-    opto_threshold    	= 0.25; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
+    opto_threshold    	= 0.1; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
     switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
 end
 
@@ -184,7 +184,7 @@ trial_starts    = trial_starts(qtrial);
 trial_ends      = trial_ends(qtrial);
 
 total_length 	= round(median(diff(trial_starts)),3);
-trial_gap       = median(trial_ends - trial_starts);
+trial_gap       = median(trial_starts(2:end)-trial_ends(1:end-1));
 
 %% At the end, simply chuck trials with no events in them?
 
@@ -351,9 +351,12 @@ for a = 1:ntrials
         opto_current_levels(a)   = max([opto_amps(select_opto_start) opto_amps(select_opto_end)]);
         opto_freq(a)             = opto_freqs(select_opto_start);
     elseif sum(select_opto_start) > 1 || sum(select_opto_end) > 1
-        error('Multiple LED stimulus values found for this trial')
+        warning('Multiple LED stimulus values found for this trial')
+        opto_onsets(a)           = min(opto_starts(select_opto_start));
+        opto_offsets(a)          = max(opto_ends(select_opto_end));
+        opto_current_levels(a)   = max(opto_powers(select_opto_start));
     elseif sum(select_opto_start) ~= sum(select_opto_end)
-        error('Mismatch in number of detected LED onsets and offsets for this trial')
+        warning('Mismatch in number of detected LED onsets and offsets for this trial')
     end
     
 end
