@@ -59,18 +59,18 @@ function drive_data = drive_plots(ephys_data, channels, resp_win, psth_bins, art
 % 
 
 % Default to all channels
-if nargin < 2 || isempty(channels)
+if nargin < 2
     channels        = ':';
 end
 
 % Default to resp win from 6ms (after any artifacts) to 30ms (should capture
 % most of the direct stimulus-driven activity
-if nargin < 3 || isempty(resp_win)
+if nargin < 3
     resp_win        = [0.006 0.030];
 end
 
 % Default PSTH range; 300ms post stimulus should capture even long-tailed responses
-if nargin < 4 || isempty(psth_bins)
+if nargin < 4
     psth_bins       = [-0.1:0.001:0.3];
 end
 
@@ -155,7 +155,7 @@ for a = 1:length(cond_data)
     [image_handle, spike_density_counts(:,:,a)] = spike_density_plot(spikes,1,psth_bins);
     ylabel('Channel')
     xlabel('Time (s)')
-    color_lims = [0 robust_max(count_data(:),clim_perc)];
+    color_lims = [0 robust_max(spike_density_counts(:),clim_perc)];
     set(gca,'CLim',color_lims)
     colorbar
     title([cond_names{a} ' spike count'])
@@ -184,7 +184,7 @@ for a = 1:length(cond_data)
         [image_handle, opto_spike_density_counts] = spike_density_plot(opto_spikes,1,opto_psth_bins);
         ylabel('Channel')
         xlabel('Time (s)')
-        color_lims = [0 robust_max(count_data(:),clim_perc)];
+        color_lims = [0 robust_max(opto_spike_density_counts(:),clim_perc)];
         set(gca,'CLim',color_lims)
         colorbar
         title(['Opto only spike density'])
