@@ -59,18 +59,18 @@ function drive_data = drive_plots(ephys_data, channels, resp_win, psth_bins, art
 % 
 
 % Default to all channels
-if nargin < 2
+if nargin < 2 || isempty(channels)
     channels        = ':';
 end
 
 % Default to resp win from 6ms (after any artifacts) to 30ms (should capture
 % most of the direct stimulus-driven activity
-if nargin < 3
+if nargin < 3 || isempty(resp_win)
     resp_win        = [0.006 0.030];
 end
 
 % Default PSTH range; 300ms post stimulus should capture even long-tailed responses
-if nargin < 4
+if nargin < 4 || isempty(psth_bins)
     psth_bins       = [-0.1:0.001:0.3];
 end
 
