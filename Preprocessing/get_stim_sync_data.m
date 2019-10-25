@@ -253,6 +253,7 @@ trial_times     = trial_ends - trial_starts;
 trial_length    = round(median(trial_times),1);
 
 total_length 	= round(median(diff(trial_starts)),1);
+trial_gap       = median(trial_starts(2:end)-trial_ends(1:end-1));
 
 %% Work out the velocity (length) of a whisk, and the frequency of a whisker stimulus burst
 
@@ -301,8 +302,8 @@ end
 % Find instances where the difference between a previous and next stimulus 
 % is more than 1/4 trial length; this should be where one trial ends and the
 % next one begins
-first_opto_inds             = find(diff(opto_starts) > total_length/4)+1;
-last_opto_inds              = find(diff(opto_starts) > total_length/4);
+first_opto_inds             = find(diff(opto_starts) > trial_gap)+1;
+last_opto_inds              = find(diff(opto_starts) > trial_gap);
 
 % make sure to include the first onset and the last offset, which will not 
 % be captured by the diff criterion (no gap before the start, no gap after
@@ -462,15 +463,15 @@ for a = 1:size(conditions,1)
     sync_data.conditions(a).opto_onsets  	= opto_onsets(q_cond_trials);
     sync_data.conditions(a).opto_offsets  	= opto_offsets(q_cond_trials);
 
-    sync_data.conditions(a).whisk_start   	= conditions(a,1);
+    sync_data.conditions(a).whisk_onset   	= conditions(a,1);
     sync_data.conditions(a).whisk_stim_nr 	= conditions(a,2);
     sync_data.conditions(a).whisk_amp     	= conditions(a,3);
     sync_data.conditions(a).whisk_freq    	= conditions(a,4);
     sync_data.conditions(a).whisk_velocity	= conditions(a,5);
     
-    sync_data.conditions(a).opto_onset    	= conditions(a,6);
-    sync_data.conditions(a).opto_duration 	= conditions(a,7);
-    sync_data.conditions(a).opto_power    	= conditions(a,8);
+    sync_data.conditions(a).LED_onset    	= conditions(a,6);
+    sync_data.conditions(a).LED_duration 	= conditions(a,7);
+    sync_data.conditions(a).LED_power    	= conditions(a,8);
     
     sync_data.conditions(a).n_trials       	= sum(q_cond_trials);
 end
