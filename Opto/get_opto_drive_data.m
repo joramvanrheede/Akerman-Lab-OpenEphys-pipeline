@@ -1,5 +1,5 @@
-function [timing_data] = get_opto_drive_data(data_folder, resp_win, psth_bins)
-% function [TIMING_DATA] = get_opto_drive_data(DATA_FOLDER, RESP_WIN, PSTH_BINS)
+function [drive_data] = get_opto_drive_data(data_folder, resp_win, psth_bins)
+% function [DRIVE_DATA] = get_opto_drive_data(DATA_FOLDER, RESP_WIN, PSTH_BINS)
 % 
 % Extracts drive data for multiple experiment days in a data folder. Use
 % e.g. to get drive experiment summary data for an entire group of
@@ -35,7 +35,7 @@ qremove                     = ismember(expt_folders,{'.','..','.DS_Store'});
 expt_folders(qremove)       = [];
 
 % Loop over experiment folders
-timing_data                 = struct;
+drive_data                 = struct;
 for a = 1:length(expt_folders)
     
     % What is current folder?
@@ -57,7 +57,7 @@ for a = 1:length(expt_folders)
         disp(['Loading ' this_expt_name '...'])
         load(fullfile(fullfolder, this_expt_name));
         
-        % Use timing_function to extract summary data about this drive experiment
+        % Use drive_function to extract summary data about this drive experiment
         drive_data(a).experiment(b)    = drive_function(ephys_data, resp_win, psth_bins);
 
     end
