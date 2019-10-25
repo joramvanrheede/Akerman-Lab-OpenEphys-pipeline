@@ -15,6 +15,8 @@ function [drive_data] = drive_function(ephys_data, whisk_resp_win, psth_bins)
 % 
 % DRIVE_DATA: a struct with fields:
 % 
+% opto_power                : What was the power of the LED / Laser?
+% 
 % whisk_resp_win            : Post-stimulus window for assessing whisker-evoked response
 % 
 % control_whisk_spike_rates	: Whisker-evoked spike rates in control condition, by channel
@@ -113,7 +115,10 @@ spont_spike_stds                = mean(spont_spike_stds,2);
 % correct both for spontaneous
 whisk_spike_rates               = whisk_spike_rates - spont_spike_rates; % subtract mean of spontaneous; take mean of spontaneous over both conditions for more robust measure
 opto_spike_rates                = opto_spike_rates - spont_spike_rates;
+
 peak_spike_rates                = peak_spike_rates - spont_spike_rates;
+peak_spike_rates(:,1)           = peak_spike_rates(:,1) - opto_spike_rates;
+delta_peak_spike_rates         	= peak_spike_rates(:,1) - peak_spike_rates(:,2);
 
 % Time difference measures
 diff_peak_spike_times           = peak_spike_times(:,1) - peak_spike_times(:,2);
@@ -130,6 +135,8 @@ delta_spike_rates               = opto_whisk_spike_rates - control_whisk_spike_r
 
 
 %% Create output variable
+drive_data.opto_power                   = ephys_data.parameters.LED_power; % Report the power level
+
 drive_data.whisk_resp_win           	= whisk_resp_win;
 
 drive_data.control_whisk_spike_rates    = control_whisk_spike_rates;
@@ -146,6 +153,7 @@ drive_data.opto_spike_rates             = opto_spike_rates;
 drive_data.opto_spike_stds              = opto_spike_stds;
 
 drive_data.peak_spike_rates             = peak_spike_rates;
+drive_data.delta_peak_spike_rates       = delta_peak_spike_rates;
 
 drive_data.peak_spike_times             = peak_spike_times;
 drive_data.diff_peak_spike_times        = diff_peak_spike_times;
