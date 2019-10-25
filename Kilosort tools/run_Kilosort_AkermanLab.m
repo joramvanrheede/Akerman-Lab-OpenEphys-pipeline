@@ -1,5 +1,5 @@
-function run_Kilosort_AkermanLab(data_folder, sort_folder, target_rec_nrs, metadata_file, n_channels, varargin)
-% function run_Kilosort_AkermanLab(data_folder, sort_folder, target_rec_nrs, metadata_file, n_channels, varargin)
+function run_Kilosort_AkermanLab(data_folder, sort_folder, target_rec_nrs, metadata_file, varargin)
+% function run_Kilosort_AkermanLab(DATA_FOLDER, SORT_FOLDER, TARGET_REC_NRS, METADATA_FILE, OPTIONS)
 % 
 % Your one-stop-shop for running Kilosort in the Akerman lab pipeline.
 % 
@@ -18,30 +18,56 @@ function run_Kilosort_AkermanLab(data_folder, sort_folder, target_rec_nrs, metad
 % recordings.
 % 
 % Optional:
-% N_CHANNELS: Number of channels of data. Defaults to 32.
 % 
-% VARARGIN (CURRENTLY NON-FUNCTIONAL):
+% OPTIONS:
 % various optional input arguments:
+% [32] / [16]: sets number of channels to specified number
+% '-cat': do concatenation of openephys data
 % '-CAR': do common average referencing
-% '-copy': copy relevant Kilosort files
+% '-copy': copy relevant Kilosort files to target folder
 % '-sync': get stimulus synchronisation data
 % '-sort': run kilosort in the folder
 % The function will run ALL OF THE ABOVE by default, currently functionality
 % for running individual sections is not yet available because of dependence
 % of some bits on others.
 % 
-% 
 
 if nargin < 5
-    n_channels      = 32; % Number of channels
-end
-
-if nargin < 6
     do_CAR              = true;
     get_KS_copyfiles  	= true;
     get_sync_data       = true;
     do_dat_and_concat  	= true;
     run_kilosort        = true;
+    n_channels          = 32;
+else
+    do_CAR              = false;
+    get_KS_copyfiles  	= false;
+    get_sync_data       = false;
+    do_dat_and_concat  	= false;
+    run_kilosort        = false;
+ 
+    if any(strcmpi('-CAR',varargin))
+        do_CAR              = true;
+    end
+    if any(strcmpi('-cat',varargin))
+        do_dat_and_concat  	= true;
+    end
+    if any(strcmpi('-sync',varargin))
+        get_sync_data       = true;
+    end
+    if any(strcmpi('-copy',varargin))
+        get_KS_copyfiles  	= true;
+    end
+    if any(strcmpi('-sort',varargin))
+        run_kilosort        = true;
+    end
+    numeric_ind    = cellfun(@isnumeric,varargin);
+    if any(numeric_ind)
+        n_channels = varargin{numeric_ind};
+    end
+%     if any(~ismember(varargin,{'-CAR' '-cat' '-sync' '-copy' '-sort' '' '' ''}))
+%         error('Unknown option provided. Valid options are: ''-copy''  ''-sync''  ''-cat''  ''-CAR''  ''-sort''')
+%     end
 end
 
 % Hardcoded concatenated data file name
@@ -114,11 +140,11 @@ if get_sync_data
     save(fullfile(sort_folder,'sync_data'),'sync_data')
 end
 
-full_dat_file_name   = fullfile(sort_folder, dat_file_name);
 
 %% convert to raw binary format and concatenate in one step:
+full_dat_file_name   = fullfile(sort_folder, dat_file_name);
 
-if do_dat_and_concat    
+if do_dat_and_concat
     % full file path of the .dat file
     
     % function that takes all individual channel .continuous files and merges
@@ -127,7 +153,7 @@ if do_dat_and_concat
     concatenate_continuous_as_dat(full_dat_file_name,concatenate_folders, n_channels);
 end
 
-%% Optional common average referencing?
+%% Common average referencing (not optional)
 
 if do_CAR
     % do common average referencing:
