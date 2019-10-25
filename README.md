@@ -7,7 +7,7 @@ The pipeline starts with the scripts in the 'Preprocessing' folder, which will s
 
 # Data preprocessing...
 
-##...for multiunit / local field potential analysis:
+## ...for multiunit / local field potential analysis:
 
 1) Collect electrophysiology data using Open Ephys software and Akerman lab PulsePal stimulation protocols
 
@@ -23,7 +23,7 @@ The pipeline starts with the scripts in the 'Preprocessing' folder, which will s
 
 
 
-##...for spike sorting using Kilosort:
+## ...for spike sorting using Kilosort:
 
 1) Collect data using OpenEphys system and Akerman lab PulsePal stimulation protocols
 
@@ -49,10 +49,12 @@ The pipeline starts with the scripts in the 'Preprocessing' folder, which will s
 
 # Data analysis
 
+...
+
+***...to be continued...***
 
 
 
 
 
-
-- Joram van Rheede
+Joram van Rheede
