@@ -1,24 +1,32 @@
-function preprocess_multiunit(metadata_file, data_folder, save_folder, start_date, end_date)
-% function preprocess_multiunit(METADATA_FILE, DATA_FOLDER, SAVE_FOLDER, START_DATE, VARARGIN)
+function preprocess_multiunit(metadata_file, data_folder, save_folder, start_date, end_date, process_expts)
+% function preprocess_multiunit(METADATA_FILE, DATA_FOLDER, SAVE_FOLDER, START_DATE, END_DATE, PROCESS_EXPTS)
+% OR
+% function preprocess_multiunit(METADATA_FILE, DATA_FOLDER, SAVE_FOLDER, START_DATE, FILE_NRS, PROCESS_EXPTS)
 % 
 % First step in the OpenEphys analysis pipeline in the Akerman lab. This will
-% read in the raw data in DATA_FOLDER use the metadata spreadsheet METADATA_FILE an
+% read in the raw data in DATA_FOLDER based on the info in metadata spreadsheet
+% METADATA_FILE and distribute per-experiment files of spike times and LFP traces
+% relative to trial onset organised by condition in SAVE_FOLDER.
 % 
+% INPUTS
+% METADATA_FILE:
+%
+% DATA_FOLDER: 
+%
+% SAVE_FOLDER:
+%
+% START_DATE:
+%
+% (end_date, expt_type, expt_numbers)
 % 
-
-% metadata_file       = '/Volumes/PS2Akermanlab/Joram/Data/in vivo metadata/Metadata File.xlsx'; % Which metadata file to use?
-% 
-% data_folder         = '/Volumes/PS2Akermanlab/MJB/In_Vivo';   %'/Volumes/Akermanlab-1/Joram/In vivo mouse data'; % Where are the data? 
-% 
-% save_folder         = '/Volumes/Akermanlab/Joram/Preprocessed data/AVK S1';  %/Volumes/Akermanlab-1/Joram/Extracted data'; % Where to save output?
-% 
-% start_date          = '2019_10_07';     % format: 'yyyy_mm_dd'; Process files from this date onwards
-% end_date            = '2019_10_07';     % format: 'yyyy_mm_dd'; Process files up until this date
-% 
-% process_expts       = {'Ramp'};          % indicate which experiment types to run, e.g.: {'Drive', 'Timing'}, or use {'All'}
+% TO DO allow processing by type OR by file/expt number; make end date optional with default equal to start date
 
 if nargin < 5
     end_date            = start_date;
+end
+if isnumeric(end_date)
+    file_nrs    = end_date;
+    end_date    = start_date;
 end
 
 if nargin < 6
