@@ -86,11 +86,11 @@ q_rec_nr        = all_rec_nrs == rec_number;
 q_select        = q_date & q_rec_nr;
 
 if sum(q_select) == 0 
-    warning(['Target recording info not found for date ' date_string ' rec nr ' num2str(rec_number) ' in metadata file ' metadata_file '.'])
+    warning(['Target recording info not found for date ' date_string ' rec nr ' num2str(rec_number) ' in metadata file .'])
     metadata_info = [];
     return
 elseif sum(q_select) > 1
-    warning(['Multiple matches found for date ' date_string ' rec nr ' num2str(rec_number) ' in metadata file ' metadata_file '.'])
+    warning(['Multiple matches found for date ' date_string ' rec nr ' num2str(rec_number) ' in metadata file .'])
     metadata_info = [];
     return
 end
