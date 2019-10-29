@@ -24,8 +24,8 @@ ephys_data.conditions       = ephys_data.conditions(q_whisk_stim & q_opto_power)
 ephys_data.condition_values = ephys_data.condition_values(q_whisk_stim & q_opto_power,:);
 
 % Deconstruct full file name
-[dirnm, filenm, extn]     	= fileparts(experiment_file);
+[dirnm, filenm, extn]     	= fileparts(experiment_filepath);
 
 % Save in target location
-save([save_dir filesep filenm extn 'w' num2str(target_whisk_nr) '_pw' num2str(target_opto_power)], 'ephys_data')
+save([save_dir filesep filenm extn 'w' num2str(target_whisk_nr) '_pw' num2str(target_opto_power) '.mat'], 'ephys_data')
 
