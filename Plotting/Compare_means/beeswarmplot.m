@@ -83,7 +83,7 @@ for b = 1:length(groupids)
     hold on
     
     % Plot median line
-    line([(xshift - meanwidth) (xshift + meanwidth) ], [nanmedian(thiscol) nanmedian(thiscol)],'LineWidth',3,'Color',[0 0 0])
+    line([(xshift - meanwidth) (xshift + meanwidth) ], [nanmean(thiscol) nanmean(thiscol)],'LineWidth',3,'Color',[0 0 0])
     
 end
 
