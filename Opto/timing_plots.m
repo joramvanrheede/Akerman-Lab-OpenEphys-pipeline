@@ -89,7 +89,6 @@ end
 
 % Hardcoded for now:
 rate_kernel_size    = 0.01;
-target_stim         = 1;
 % opto_resp_win       = [0.006 0.030];
 
 
@@ -111,11 +110,6 @@ for a = 1:length(ephys_data.conditions)
     
     % Fetch data for this condition
     this_cond                       = ephys_data.conditions(a);
-    
-    % for compatibility with multiple-stimulator files; will do stim 1 only.
-    if this_cond.whisk_stimulator ~= target_stim
-        continue
-    end
     
     % Increment counter and find stimulus data for this condition
     counter                         = counter + 1;
