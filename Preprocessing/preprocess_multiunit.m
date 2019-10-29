@@ -1,29 +1,53 @@
 function preprocess_multiunit(metadata_file, data_folder, save_folder, start_date, end_date, process_expts)
 % function preprocess_multiunit(METADATA_FILE, DATA_FOLDER, SAVE_FOLDER, START_DATE, END_DATE, PROCESS_EXPTS)
 % OR
-% function preprocess_multiunit(METADATA_FILE, DATA_FOLDER, SAVE_FOLDER, START_DATE, FILE_NRS, PROCESS_EXPTS)
+% function preprocess_multiunit(METADATA_FILE, DATA_FOLDER, SAVE_FOLDER, START_DATE, FILE_NRS)
 % 
 % First step in the OpenEphys analysis pipeline in the Akerman lab. This will
 % read in the raw data in DATA_FOLDER based on the info in metadata spreadsheet
 % METADATA_FILE and distribute per-experiment files of spike times and LFP traces
-% relative to trial onset organised by condition in SAVE_FOLDER.
+% relative to trial onset organised by condition in SAVE_FOLDER. START_DATE sets the
+% date from which to preprocess data - if only START_DATE is specified the function
+% will only preprocess data from this date, if an END_DATE is specified the function
+% will preprocess data from START_DATE up to and including END_DATE.
 % 
-% INPUTS
-% METADATA_FILE:
-%
-% DATA_FOLDER: 
-%
-% SAVE_FOLDER:
-%
-% START_DATE:
-%
-% (end_date, expt_type, expt_numbers)
+% If FILE_NRS are specified instead of END_DATE, the function will preprocess only
+% the specified file numbers from START_DATE (and preprocess for this date only).
 % 
-% TO DO allow processing by type OR by file/expt number; make end date optional with default equal to start date
+% You can preprocess only target experiment types using PROCESS_EXPTS.
+% 
+% REQUIRED INPUTS:
+% 
+% METADATA_FILE: Full file path of metadata file containing metadata for this experiment.
+% See /Metadata/metadata_template.xlsx for an example.
+%
+% DATA_FOLDER: Full path to the folder containing the data (the parent folder
+% that contains the folders for individual dates).
+%
+% SAVE_FOLDER: The folder where you want the preprocessed data to be saved.
+%
+% START_DATE: Preprocess experiments from this date onwards - format 'yyyy_mm_dd'
+% e.g. '2019_01_01'.
+% 
+% OPTIONAL INPUTS:
+% 
+% END_DATE: Preprocess experiments until this date. Default is the same as START_DATE
+% so the function will only process data for one target day.
+% OR
+% FILE_NRS: Preprocess only the target file numbers on the specified START_DATE
+% (if FILE_NRS is specified the function will only preprocess a single date).
+% 
+% PROCESS_EXPTS: Enter experiment types that you want to preprocess as a list of strings
+% in a cell, e.g. {'Drive' 'Timing' 'Laser_pulse'}; defaults to {'All'}, i.e. all experiment
+% types in the date range will be preprocessed.
+% 
+% TO DO - Allow trials from whisk & whisk_buffer
+% 
 
 if nargin < 5
     end_date            = start_date;
 end
+
 if isnumeric(end_date)
     file_nrs    = end_date;
     end_date    = start_date;
@@ -39,6 +63,7 @@ if nargin < 7
     trials_from_whisk   = false;          	% discard trial information from ADC channels and determine trials based on whisker instead?
     whisk_buffer        = 3;              % 0.0625 	% if using whisk stim to divide recording into trials (above), trials start whisk_buffer (in seconds) before the whisker stim onset, and end 2*whisk buffer after whisker stim ONSET
 end
+
 %% These things shouldn't really change
 do_CAR              = true;             % Do common average referencing?
 save_sync_chans     = true;
@@ -125,6 +150,13 @@ for a = 1:size(metadata,1)
     this_expt       = metadata{a,expt_col};
     
     if ~any(strcmp(this_expt,process_expts)) && ~any(strcmpi('All',process_expts))
+        continue
+    end
+    
+    % find experiment number; see if it needs processing
+    this_file_nr    = metadata{a,file_col};
+    
+    if exist('file_nrs','var') && ~ismember(this_file_nr, file_nrs)
         continue
     end
     
