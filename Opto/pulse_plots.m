@@ -178,7 +178,7 @@ for b = 1:n_powers
     spikes                      = [];
     for c = 1:length(power_inds)
         
-        these_spikes                = cond_data(power_inds(c)).spikes;
+        these_spikes                = cond_data(power_inds(c)).spikes(channels,:,:);
 
         spikes(1:size(these_spikes,1),size(spikes,2)+(1:size(these_spikes,2)),1:size(these_spikes,3)) = these_spikes;
         
