@@ -41,6 +41,12 @@ function preprocess_multiunit(metadata_file, data_folder, save_folder, start_dat
 % in a cell, e.g. {'Drive' 'Timing' 'Laser_pulse'}; defaults to {'All'}, i.e. all experiment
 % types in the date range will be preprocessed.
 % 
+% BASELINE_MOVING_WINDOW: Moving minimum window for fixing baseline in milliseconds. 
+% Baseline fixing is disabled by default, but is enabled when this input is provided. 
+% For the moving minimum window, the best value is 'a few milliseconds longer than 
+% your longest LED stimulus', and in general the baseline fix will give better results
+% for recordings with shorter LED stimuli.
+%
 % TO DO - Allow trials from whisk & whisk_buffer
 % 
 
