@@ -1,7 +1,7 @@
-function preprocess_multiunit(metadata_file, data_folder, save_folder, start_date, end_date, process_expts)
-% function preprocess_multiunit(METADATA_FILE, DATA_FOLDER, SAVE_FOLDER, START_DATE, END_DATE, PROCESS_EXPTS)
+function preprocess_multiunit(metadata_file, data_folder, save_folder, start_date, end_date, process_expts, baseline_moving_window)
+% function preprocess_multiunit(METADATA_FILE, DATA_FOLDER, SAVE_FOLDER, START_DATE, END_DATE, PROCESS_EXPTS,BASELINE_MOVING_WINDOW)
 % OR
-% function preprocess_multiunit(METADATA_FILE, DATA_FOLDER, SAVE_FOLDER, START_DATE, FILE_NRS)
+% function preprocess_multiunit(METADATA_FILE, DATA_FOLDER, SAVE_FOLDER, START_DATE, FILE_NRS,BASELINE_MOVING_WINDOW)
 % 
 % First step in the OpenEphys analysis pipeline in the Akerman lab. This will
 % read in the raw data in DATA_FOLDER based on the info in metadata spreadsheet
@@ -51,13 +51,25 @@ end
 if isnumeric(end_date)
     file_nrs    = end_date;
     end_date    = start_date;
+    if exist('process_expts','var')
+        baseline_moving_window  = process_expts;
+        process_expts   = 'All';
+    end
 end
 
 if nargin < 6
     process_expts       = 'All';
 end
 
-if nargin < 7
+if exist('baseline_moving_window','var')
+    q_fix_baseline          = true;
+else
+    q_fix_baseline          = false;
+    baseline_moving_window  = NaN;
+end
+
+    
+if nargin < 8
     %% Change these only in exceptional cases
     get_LFP             = true;             % get LFP traces? This does increase output data size
     trials_from_whisk   = false;          	% discard trial information from ADC channels and determine trials based on whisker instead?
@@ -100,6 +112,7 @@ type_col        = find(strcmpi('Animal type',headers)); % EG 'IUE ChR2-YFP-ON' o
 age_col         = find(strcmpi('Age (w)',headers)); % Age of animal in weeks
 
 probe_col       = find(strcmpi('Probe type',headers));
+animal_nr_col   = find(strcmpi('Animal number',headers));
 pen_col         = find(strcmpi('Penetration nr',headers)); % Penetration number (for this animal)
 caud_col        = find(strcmpi('Caudal',headers)); % Caudal position (mm)
 lat_col         = find(strcmpi('Lateral',headers)); % Lateral position (mm)
@@ -202,6 +215,7 @@ for a = 1:size(metadata,1)
     parameters.experiment_type      = metadata{a,expt_col};             % What type of experiment is this?
     
     parameters.animal_type          = metadata(a,type_col);
+    parameters.animal_nr            = metadata{a,animal_nr_col};
     parameters.target_whisker       = this_whisk;
     
     parameters.trials_from_whisk    = trials_from_whisk;
@@ -210,6 +224,8 @@ for a = 1:size(metadata,1)
     parameters.save_sync_chans      = save_sync_chans;
     parameters.sync_chans_res       = sync_chans_res;
     
+    parameters.q_fix_baseline           = q_fix_baseline;
+    parameters.baseline_moving_window   = baseline_moving_window;
     
     %% time to extract the data
     this_data_folder                = [data_folder filesep this_date];

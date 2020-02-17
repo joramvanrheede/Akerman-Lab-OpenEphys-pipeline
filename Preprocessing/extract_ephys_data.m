@@ -24,6 +24,9 @@ do_CAR                  = parameters.do_CAR;                % If true, do common
 save_sync_chans         = parameters.save_sync_chans;       % save the synchronisation channel outputs
 sync_chans_res          = parameters.sync_chans_res;        % resolution for the synch channel outputs
 
+q_fix_baseline          = parameters.q_fix_baseline;
+baseline_moving_window  = parameters.baseline_moving_window;
+
 %% Hard-coded parameters
 
 samplefreq              = 30000;
@@ -58,12 +61,12 @@ filefolder              = filefolders{fileind}; % this is the folder we're after
 if switch_input_nr ~= 0
     trial_threshold     = 0.25; % For trial, signal goes up to 2.5V or less
     stim_threshold      = 2.7; % For whisking (always during trial), signal goes up to 2.75 - 5V
-    opto_threshold   	= 0.1; % normal TTL logic - 0 to 5V
+    opto_threshold   	= 0.125; % normal TTL logic - 0 to 5V
     switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
 else
     trial_threshold     = 0.25; % normal TTL logic - 0 to 5V
     stim_threshold      = 2.5; % normal TTL logic - 0 to 5V
-    opto_threshold    	= 0.1; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
+    opto_threshold    	= 0.125; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
     switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
 end
 
@@ -77,7 +80,38 @@ for a = 1:4 % loop through the analog input channels
         disp(['File ' datafolder filesep filefolder filesep data_prefix '_ADC' num2str(adc_channel_nrs(a)) '.continuous'])
         [thisTTL timestamps info] = load_open_ephys_data([datafolder filesep filefolder filesep data_prefix '_ADC' num2str(adc_channel_nrs(a)) '.continuous']);
         
-        % thisTTL         = thisTTL - min(thisTTL(:));
+        thisTTL         = thisTTL - min(smooth(thisTTL(:),101));
+        
+        %% Special case for fixing baseline of LED input channel:
+        if a == 3 && q_fix_baseline
+
+            % Moving minimum based on LED conditions res.
+            % Operates on resampled 'thisTTL' with 1 sample per 10ms; if
+            % vector left in original length this operation takes too long.
+            moving_TTL_min  = movmin(thisTTL(1:30:end),baseline_moving_window); 
+            
+            % smooth transitions with window, again based on LED res
+            smooth_TTL_min  = smooth(moving_TTL_min,LED_conditions_res); 
+            smooth_TTL_min  = [smooth_TTL_min(:); smooth_TTL_min(end)]; % make sure this vector when resampled will be longer than thisTTL
+            
+            % bring back to full 30kHz sample rate
+            resamp_smooth_TTL_min   = resample(smooth_TTL_min,300,1);
+            
+            % Correct original TTL
+            corr_TTL        = thisTTL - resamp_smooth_TTL_min(1:length(thisTTL));
+            
+            % For debugging
+%             plot(thisTTL(1:100:end),'k-','LineWidth',2)
+%             hold on
+%             plot(corr_TTL(1:100:end),'b-')
+%             plot([0 length(thisTTL)/100], [adc_channel_thresholds(a) adc_channel_thresholds(a)],'r-')
+%             keyboard
+            % end debugging code
+
+            % Apply moving minimum correction
+            thisTTL         = corr_TTL;
+        end
+        %% end debug zone
         
         starttime       = min(timestamps); % find start time
         endtime         = max(timestamps); % find end time
@@ -112,8 +146,12 @@ for a = 1:4 % loop through the analog input channels
             
             % Determine stimulus amplitude from signal
             stim_amps       = NaN(size(start_inds));
+            
             for i = 1:length(start_inds)
                 stim_segment    = thisTTL(start_inds(i):end_inds(i));
+                if isempty(stim_segment)
+                    stim_segment = NaN;
+                end
                 stim_amps(i)   	= ((max(stim_segment) - 2.5) / 2.5) * 100; % Stimulus amplitude in % of max
             end
         case 3
@@ -124,6 +162,9 @@ for a = 1:4 % loop through the analog input channels
             
             for i = 1:length(start_inds)
                 stim_segment    = thisTTL(start_inds(i):end_inds(i));
+                if isempty(stim_segment)
+                    stim_segment = NaN;
+                end
                 opto_powers(i) 	= max(stim_segment) / 5 * 100; % Stimulus amplitude in % of max
             end
         case 4
@@ -132,7 +173,7 @@ for a = 1:4 % loop through the analog input channels
     end
     if save_sync_chans
         resample_freq               = round(samplefreq / sync_chans_res);
-        sync_chan_traces(:,a)       = thisTTL(1:resample_freq:end);
+        sync_chan_traces(1:length(thisTTL(1:resample_freq:end)),a)  = thisTTL(1:resample_freq:end);
         if a == 1
             sync_chan_timestamps 	= timestamps(1:resample_freq:end);
         end
@@ -375,7 +416,7 @@ switch expt_type % for each experiment, make sure not to split conditions by oth
 end
 
 whisk_stim_amplitudes       = round(whisk_stim_amplitudes / 5) * 5; % round to nearest 5%
-opto_current_levels         = round(opto_current_levels / 5) * 5; % round to nearest 5%
+opto_current_levels         = round(opto_current_levels / 5) * 5; % round to nearest .5%
 
 %% Done with clean-up and event extraction; now determine the different conditions
 
@@ -443,10 +484,20 @@ while flag
         
         nbatches        = ceil(numel(rawData)/(nSamples+6));
         for s = 1:nbatches
-            rawSamps = rawData((s-1) * (nSamples + 6) +6+ [1:nSamples]);
-            collectSamps((s-1)*nSamples + [1:nSamples]) = rawSamps;
+            
+            collect_inds    = (s-1) * (nSamples + 6) + 6 + [1:nSamples];
+            
+            if max(collect_inds > length(rawData))
+                collect_inds    = min(collect_inds:max(collect_inds));
+            end
+            
+            rawSamps = rawData(collect_inds);
+            
+            
+            collectSamps((s-1)*nSamples + [1:length(rawSamps)]) = rawSamps;
+            
         end
-        channel_traces(:,j)         = collectSamps;
+        channel_traces(1:length(collectSamps),j)         = collectSamps;
     end
     
     if nbatches<1000 % we have reached the end of the file
