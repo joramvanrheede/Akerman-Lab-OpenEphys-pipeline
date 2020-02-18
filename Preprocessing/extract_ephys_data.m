@@ -91,11 +91,11 @@ for a = 1:4 % loop through the analog input channels
             moving_TTL_min  = movmin(thisTTL(1:30:end),baseline_moving_window); 
             
             % smooth transitions with window, again based on LED res
-            smooth_TTL_min  = smooth(moving_TTL_min,LED_conditions_res); 
+            smooth_TTL_min  = smooth(moving_TTL_min,11); 
             smooth_TTL_min  = [smooth_TTL_min(:); smooth_TTL_min(end)]; % make sure this vector when resampled will be longer than thisTTL
             
             % bring back to full 30kHz sample rate
-            resamp_smooth_TTL_min   = resample(smooth_TTL_min,300,1);
+            resamp_smooth_TTL_min   = resample(smooth_TTL_min,30,1);
             
             % Correct original TTL
             corr_TTL        = thisTTL - resamp_smooth_TTL_min(1:length(thisTTL));
@@ -393,8 +393,8 @@ for a = 1:ntrials
         opto_freq(a)             = opto_freqs(select_opto_start);
     elseif sum(select_opto_start) > 1 || sum(select_opto_end) > 1
         warning('Multiple LED stimulus values found for this trial')
-        opto_onsets(a)           = min(opto_starts(select_opto_start));
-        opto_offsets(a)          = max(opto_ends(select_opto_end));
+        opto_onsets(a)           = min(opto_firsts(select_opto_start));
+        opto_offsets(a)          = max(opto_lasts(select_opto_end));
         opto_current_levels(a)   = max(opto_powers(select_opto_start));
     elseif sum(select_opto_start) ~= sum(select_opto_end)
         warning('Mismatch in number of detected LED onsets and offsets for this trial')
@@ -416,7 +416,9 @@ switch expt_type % for each experiment, make sure not to split conditions by oth
 end
 
 whisk_stim_amplitudes       = round(whisk_stim_amplitudes / 5) * 5; % round to nearest 5%
-opto_current_levels         = round(opto_current_levels / 5) * 5; % round to nearest .5%
+
+opto_current_levels(opto_current_levels > 7)        = round(opto_current_levels(opto_current_levels > 7)/5)*5;       % round to nearest 1% to remove jitter
+opto_current_levels(opto_current_levels <= 7)       = round(opto_current_levels(opto_current_levels <= 7)/2.5)*2.5; 
 
 %% Done with clean-up and event extraction; now determine the different conditions
 
