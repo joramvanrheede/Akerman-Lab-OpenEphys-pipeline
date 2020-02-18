@@ -98,6 +98,8 @@ for a = 1:length(cond_data)
     
     [peak_spike_rates(:,a), peak_spike_times(:,a)]         	= peak_ROF_by_channel(spikes, resp_win, rate_kernel_win);
     
+    first_spikes_all(:,:,a)         = first_spike_individual(spikes, resp_win);
+    
     % Quantify opto spikes
     opto_spikes                     = cond_data(a).spikes(units,:,:) - cond_data(a).LED_onset;
     all_opto_spike_rates(:,:,a)     = spike_rates_individual(opto_spikes, opto_resp_win);
@@ -266,9 +268,11 @@ ylabel('First spike opto')
 
 %%
 
-[spike_rate_h,spike_rate_p]               = ttest2(all_spike_rates(:,:,1)',all_spike_rates(:,:,2)');
+[spike_rate_h,spike_rate_p]                 = ttest2(all_spike_rates(:,:,1)',all_spike_rates(:,:,2)');
 
+[first_spike_h, first_spike_p]              = ttest2(first_spikes_all(:,:,1)',first_spikes_all(:,:,2)');
 
+keyboard
 spike_prob_hits     = n_hits;
 spike_prob_misses   = n_trials - spike_prob_hits;
 
@@ -300,6 +304,8 @@ drive_data.spike_probs          = spike_probs;
 drive_data.spike_prob_p         = spike_prob_p;
 
 drive_data.first_spike_times    = first_spike_times;
+drive_data.first_spikes_all     = first_spikes_all;
+drive_data.first_spike_p        = first_spike_p;
 
 drive_data.psths                = psth_counts;
 drive_data.spike_density        = spike_density_counts;
