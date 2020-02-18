@@ -134,7 +134,44 @@ if get_sync_data
         
         metadata_info           = read_metadata(metadata, headers, date_string, rec_nrs(i));
         
-        sync_data(i)            = get_stim_sync_data(concatenate_folders{i},metadata_info);
+        expt_type               = metadata_info.experiment_type;
+        
+        % set moving minimum window for baseline fixing
+        switch expt_type
+            case 'LED_power'
+                baseline_moving_win = 12;
+                LED_conditions_res  = 5;
+            case 'LED Powers'
+                baseline_moving_win = 12;
+                LED_conditions_res  = 5;
+            case 'LED_pulse'
+                baseline_moving_win = 12;
+                LED_conditions_res  = 5;
+            case 'Timing'
+                baseline_moving_win = 12;
+                LED_conditions_res  = 5;
+            case 'Drive'
+                baseline_moving_win = 1020;
+                LED_conditions_res  = 5;
+            case 'Drive early'
+                baseline_moving_win = 1020;
+                LED_conditions_res  = 5;
+            case 'Ramp'
+                baseline_moving_win = 10020;
+                LED_conditions_res  = 1000;
+            case 'Short ramp'
+                baseline_moving_win = 10020;
+                LED_conditions_res  = 100;
+            case 'long_opto'
+                baseline_moving_win = 10020;
+                LED_conditions_res  = 5;
+            case ''
+            otherwise
+                baseline_moving_win = 1020;
+                LED_conditions_res  = 5;
+        end
+        
+        sync_data(i)            = get_stim_sync_data(concatenate_folders{i},metadata_info,0,[],baseline_moving_win);
         
     end
     save(fullfile(sort_folder,'sync_data'),'sync_data')

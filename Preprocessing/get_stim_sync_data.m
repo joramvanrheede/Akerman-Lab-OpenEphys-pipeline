@@ -1,5 +1,5 @@
-function [sync_data] = get_stim_sync_data(datafolder,metadata_info,trials_from_whisk, whisk_buffer)
-% function [sync_data] = get_stim_sync_data(DATAFOLDER,EVENTS_CHANS,TRIALS_FROM_WHISK, WHISK_BUFFER)
+function [sync_data] = get_stim_sync_data(datafolder,metadata_info,trials_from_whisk, whisk_buffer, baseline_moving_window)
+% function [sync_data] = get_stim_sync_data(DATAFOLDER,EVENTS_CHANS,TRIALS_FROM_WHISK, WHISK_BUFFER, BASELINE_MOVING_WINDOW)
 % OR
 % function [sync_data] = get_stim_sync_data(DATAFOLDER,METADATA_INFO)
 % 
@@ -49,6 +49,9 @@ function [sync_data] = get_stim_sync_data(datafolder,metadata_info,trials_from_w
 % they should constitute a new trial;
 % if inter-whisk_interval > whisk_buffer --> new trial.
 % 
+% BASELINE_MOVING_WINDOW: if specified, baseline is fixed using this moving 
+% minimum window (in ms) for fixing baseline.
+% 
 
 % Do we get events_channels only? Or an actual struct pre-populated with metadata information
 % as produced by READ_METADATA?
@@ -67,10 +70,10 @@ if ~isstruct(metadata_info)
         whisk_buffer        = 'auto'; % default is to collect 2 secs from the onset of whisk stimulus
     end
     
-    % Hardcoded defaults
-    opto_conditions_res   	= 5;    % resolution in ms for automatically extracting conditions from LED delays
-    whisk_conditions_res    = 10;  % resolution in ms for automatically extracting conditions from whisker delays
-    
+%     % Hardcoded defaults
+%     opto_conditions_res   	= 5;    % resolution in ms for automatically extracting conditions from LED delays
+%     whisk_conditions_res    = 10;  % resolution in ms for automatically extracting conditions from whisker delays
+%     
 else
     trial_input_nr          = metadata_info.trial_channel;          % Which input channel has the trial TTL
     stim_input_nr           = metadata_info.whisk_channel;          % Which input channel has the stim / whisk TTL
@@ -93,12 +96,12 @@ min_whisk_buffer        = 2;
 if switch_input_nr ~= 0
     trial_threshold     = 0.25; % For trial, signal goes up to 2.5V or less
     stim_threshold      = 2.7; % For whisking (always during trial), signal goes up to 2.75 - 5V
-    opto_threshold    	= 0.1; % normal TTL logic - 0 to 5V
+    opto_threshold    	= 0.2; % normal TTL logic - 0 to 5V
     switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
 else
     trial_threshold     = 0.25; % normal TTL logic - 0 to 5V
     stim_threshold      = 2.5; % normal TTL logic - 0 to 5V
-    opto_threshold    	= 0.1; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
+    opto_threshold    	= 0.2; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
     switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
 end
 
@@ -139,7 +142,40 @@ for a = 1:length(adc_channel_nrs) % loop through the analog input channels
         disp(['File ' datafolder filesep data_prefix 'ADC' num2str(adc_channel_nrs(a)) '.continuous'])
         [thisTTL timestamps info] = load_open_ephys_data([datafolder filesep data_prefix 'ADC' num2str(adc_channel_nrs(a)) '.continuous']);
         
-        % thisTTL         = thisTTL - min(thisTTL(:));
+        %% Special case for fixing baseline of LED input channel:
+        if a == 3 && exist('baseline_moving_window','var')
+
+            % Moving minimum based on LED conditions res.
+            % Operates on resampled 'thisTTL' with 1 sample per 10ms; if
+            % vector left in original length this operation takes too long.
+            moving_TTL_min  = movmin(thisTTL(1:30:end),baseline_moving_window); 
+            
+            % smooth transitions with window
+            smooth_TTL_min  = smooth(moving_TTL_min,7);
+            smooth_TTL_min  = [smooth_TTL_min(:); smooth_TTL_min(end)]; % make sure this vector when resampled will be longer than thisTTL
+            
+            % bring back to full 30kHz sample rate
+            resamp_smooth_TTL_min   = resample(smooth_TTL_min,30,1);
+            
+            % Correct original TTL
+            corr_TTL        = thisTTL - resamp_smooth_TTL_min(1:length(thisTTL));
+            
+   
+%            % Uncomment For debugging
+%             figure
+%             plot(thisTTL(1:100:end),'k-','LineWidth',2)
+%             hold on
+%             plot(corr_TTL(1:100:end),'b-')
+%             plot(resamp_smooth_TTL_min(1:100:end),'c-')
+%             plot([0 length(thisTTL)/100], [adc_channel_thresholds(a) adc_channel_thresholds(a)],'r-')
+%             beep
+%             keyboard
+%             close(gcf)    
+%            % end debugging code
+
+            % Apply moving minimum correction
+            thisTTL         = corr_TTL;
+        end
         
         starttime       = min(timestamps);              % find start time
         endtime         = max(timestamps);              % find end time
@@ -387,9 +423,9 @@ for a = 1:ntrials
     end
     
     % see whether there was an LED on / offset here
-    select_opto_start   = opto_starts >= this_trial_start & opto_starts <= this_trial_end;
-    select_opto_end 	= opto_ends >= this_trial_start & opto_ends <= this_trial_end;
-    
+    select_opto_start   = opto_firsts >= this_trial_start & opto_firsts <= this_trial_end;
+    select_opto_end 	= opto_lasts >= this_trial_start & opto_lasts <= this_trial_end;
+       
     if sum(select_opto_start) == 1 && sum(select_opto_end) == 1
         opto_onsets(a)           = opto_firsts(select_opto_start);
         opto_offsets(a)          = opto_lasts(select_opto_end);
@@ -397,8 +433,8 @@ for a = 1:ntrials
         opto_freq(a)             = opto_freqs(select_opto_start);
     elseif sum(select_opto_start) > 1 || sum(select_opto_end) > 1
         warning('Multiple opto stimulus values found for this trial')
-        opto_onsets(a)           = min(opto_starts(select_opto_start));
-        opto_offsets(a)          = max(opto_ends(select_opto_end));
+        opto_onsets(a)           = min(opto_firsts(select_opto_start));
+        opto_offsets(a)          = max(opto_lasts(select_opto_end));
         opto_current_levels(a)   = max(opto_powers(select_opto_start));
     elseif sum(select_opto_start) ~= sum(select_opto_end)
         error('Mismatch in number of detected opto onsets and offsets for this trial')
@@ -428,7 +464,9 @@ else
 end
 
 whisk_stim_amplitudes       = round(whisk_stim_amplitudes);     % round to nearest 1% to remove jitter
-opto_current_levels         = round(opto_current_levels);       % round to nearest 1% to remove jitter
+
+opto_current_levels(opto_current_levels > 7)        = round(opto_current_levels(opto_current_levels > 7)/5)*5;       % round to nearest 1% to remove jitter
+opto_current_levels(opto_current_levels <= 7)        = round(opto_current_levels(opto_current_levels <= 7)/2.5)*2.5; 
 
 % recover LED delays
 opto_delays                 = round((opto_onsets(:) - trial_starts(:)) / opto_conditions_res,3) * opto_conditions_res;

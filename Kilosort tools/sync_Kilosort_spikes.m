@@ -102,6 +102,15 @@ for a = 1:length(rec_durations)-1
     min_ind                     = total_duration_temp_ind - samplerate; % -1sec
     max_ind                     = total_duration_temp_ind + samplerate; % +1sec
     
+    if length(start_gap) ~= length(end_gap)
+        if end_gap(1) < start_gap(1)
+            end_gap(1)      = [];
+        end
+        if start_gap(end) > end_gap(end)
+            start_gap(end)  = [];
+        end
+    end
+    
     these_start_gaps            = start_gap(start_gap > min_ind & start_gap < max_ind);
     these_end_gaps              = end_gap(end_gap > min_ind & start_gap < max_ind);
     
