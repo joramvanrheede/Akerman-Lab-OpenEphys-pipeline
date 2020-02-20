@@ -489,8 +489,18 @@ end
 
 whisk_stim_amplitudes       = round(whisk_stim_amplitudes);     % round to nearest 1% to remove jitter
 
-opto_current_levels(opto_current_levels > 7)        = round(opto_current_levels(opto_current_levels > 7)/5)*5;       % round to nearest 1% to remove jitter
-opto_current_levels(opto_current_levels <= 7)        = round(opto_current_levels(opto_current_levels <= 7)/2.5)*2.5; 
+
+%% opto current level fixing -- make sure current levels are grouped together into different levels sensibly
+
+opto_current_levels(isnan(opto_current_levels)) = 0; % Set NaN values (= no LED detected) to 0
+
+% Cluster the range of values together and set each value to the mean of its 
+% nearest cluster so we don't create spurious conditions
+opto_current_levels     = contract_to_cluster_mean(opto_current_levels,20,'percentage');
+
+opto_current_levels     = round(opto_current_levels); % round to nearest integer
+
+%%
 
 % recover LED delays
 opto_delays                 = round((opto_onsets(:) - trial_starts(:)) / opto_conditions_res,3) * opto_conditions_res;
