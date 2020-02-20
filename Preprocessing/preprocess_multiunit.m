@@ -201,10 +201,10 @@ for a = 1:size(metadata,1)
         case '32ch'
             parameters.get_channels         = channel_order_32ch;
     end
-    
+
     % all variables that are only relevant in the 'parameters' struct for
     % extract_ephys_data_function can go directly into the struct
-    
+
     parameters.data_prefix         	= metadata{a,prefix_col};
     parameters.get_LFP              = get_LFP;
     parameters.LED_power            = this_LEDpw;
@@ -216,7 +216,7 @@ for a = 1:size(metadata,1)
     
     parameters.trial_channel      	= metadata{a,trialTTL_col};         % Which input channel has the episode TTL
     parameters.whisk_channel     	= metadata{a,whiskTTL_col};         % Which input channel has the piezo / whisk TTL
-    parameters.LED_channel          = metadata{a,LEDTTL_col};           % Which input channel has the LED TTL    
+    parameters.LED_channel          = metadata{a,LEDTTL_col};           % Which input channel has the LED TTL
     parameters.stim_switch_channel  = metadata{a,switchTTL_col};        % Which input channel has the stimulator switch TTL
     parameters.experiment_type      = metadata{a,expt_col};             % What type of experiment is this?
     
@@ -230,8 +230,33 @@ for a = 1:size(metadata,1)
     parameters.save_sync_chans      = save_sync_chans;
     parameters.sync_chans_res       = sync_chans_res;
     
-    parameters.q_fix_baseline           = q_fix_baseline;
-    parameters.baseline_moving_window   = baseline_moving_window;
+    % set moving minimum window for baseline fixing
+    switch parameters.experiment_type
+        case 'LED_power'
+            baseline_moving_win = 12;
+        case 'Laser_pulse'
+            baseline_moving_win = 12;
+        case 'Timing'
+            baseline_moving_win = 12;
+        case 'Drive'
+            baseline_moving_win = 1020;
+        case 'Drive_early'
+            baseline_moving_win = 1020;
+        case 'Ramp'
+            baseline_moving_win = 10020;
+        case 'Short_ramp'
+            baseline_moving_win = 10020;
+        case 'Long_opto'
+            baseline_moving_win = 10020;
+        case 'Dual_delay'
+            baseline_moving_win = 12;
+        case 'Multiwhisk_ramp'
+            baseline_moving_win = 10020;
+        otherwise
+            baseline_moving_win = 10020;
+    end
+    
+    parameters.baseline_moving_window   = baseline_moving_win;
     
     %% time to extract the data
     this_data_folder                = [data_folder filesep this_date];

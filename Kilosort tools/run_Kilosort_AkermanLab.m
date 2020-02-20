@@ -141,10 +141,7 @@ if get_sync_data
             case 'LED_power'
                 baseline_moving_win = 12;
                 LED_conditions_res  = 5;
-            case 'LED Powers'
-                baseline_moving_win = 12;
-                LED_conditions_res  = 5;
-            case 'LED_pulse'
+            case 'Laser_pulse'
                 baseline_moving_win = 12;
                 LED_conditions_res  = 5;
             case 'Timing'
@@ -152,23 +149,27 @@ if get_sync_data
                 LED_conditions_res  = 5;
             case 'Drive'
                 baseline_moving_win = 1020;
-                LED_conditions_res  = 5;
-            case 'Drive early'
+                LED_conditions_res  = 100;
+            case 'Drive_early'
                 baseline_moving_win = 1020;
-                LED_conditions_res  = 5;
+                LED_conditions_res  = 100;
             case 'Ramp'
                 baseline_moving_win = 10020;
                 LED_conditions_res  = 1000;
-            case 'Short ramp'
+            case 'Short_ramp'
                 baseline_moving_win = 10020;
                 LED_conditions_res  = 100;
-            case 'long_opto'
+            case 'Long_opto'
                 baseline_moving_win = 10020;
+                LED_conditions_res  = 100;
+            case 'Dual_delay'
+                baseline_moving_win = 12;
                 LED_conditions_res  = 5;
-            case ''
+            case 'Multiwhisk_ramp'
+                baseline_moving_win = 10020;
+                LED_conditions_res  = 100;
             otherwise
-                baseline_moving_win = 1020;
-                LED_conditions_res  = 5;
+                baseline_moving_win = 10020;
         end
         
         sync_data(i)            = get_stim_sync_data(concatenate_folders{i},metadata_info,0,[],baseline_moving_win);

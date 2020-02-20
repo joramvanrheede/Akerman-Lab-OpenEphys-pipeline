@@ -53,6 +53,10 @@ function [sync_data] = get_stim_sync_data(datafolder,metadata_info,trials_from_w
 % minimum window (in ms) for fixing baseline.
 % 
 
+if ~exist('baseline_moving_window','var')
+    baseline_moving_window = 10020; % Default to 10020 ms to capture the maximum opto stimulus length (10s)
+end
+
 % Do we get events_channels only? Or an actual struct pre-populated with metadata information
 % as produced by READ_METADATA?
 if ~isstruct(metadata_info)
@@ -70,10 +74,10 @@ if ~isstruct(metadata_info)
         whisk_buffer        = 'auto'; % default is to collect 2 secs from the onset of whisk stimulus
     end
     
-%     % Hardcoded defaults
-%     opto_conditions_res   	= 5;    % resolution in ms for automatically extracting conditions from LED delays
-%     whisk_conditions_res    = 10;  % resolution in ms for automatically extracting conditions from whisker delays
-%     
+    % Hardcoded defaults
+    opto_conditions_res   	= 5;    % resolution in ms for automatically extracting conditions from LED delays
+    whisk_conditions_res    = 10;  % resolution in ms for automatically extracting conditions from whisker delays
+    
 else
     trial_input_nr          = metadata_info.trial_channel;          % Which input channel has the trial TTL
     stim_input_nr           = metadata_info.whisk_channel;          % Which input channel has the stim / whisk TTL
@@ -143,7 +147,7 @@ for a = 1:length(adc_channel_nrs) % loop through the analog input channels
         [thisTTL timestamps info] = load_open_ephys_data([datafolder filesep data_prefix 'ADC' num2str(adc_channel_nrs(a)) '.continuous']);
         
         %% Special case for fixing baseline of LED input channel:
-        if a == 3 && exist('baseline_moving_window','var')
+        if a == 3
 
             % Moving minimum based on LED conditions res.
             % Operates on resampled 'thisTTL' with 1 sample per 10ms; if
@@ -212,13 +216,13 @@ for a = 1:length(adc_channel_nrs) % loop through the analog input channels
     start_inds      = find(diff(thisTTL_bool) > 0.5);   % find instances where the TTL goes from low to high
     end_inds        = find(diff(thisTTL_bool) < -0.5);  % find instances where the TTL goes from high to low
     
+    if ~isempty(start_inds) % Some channels may not have events (e.g. stim switch channel if only 1 stimulator used)
+        end_inds(end_inds < start_inds(1))       = []; % discard potential initial end without start
+        start_inds(start_inds > end_inds(end))   = []; % discard potential final start without end
+    end
+    
     start_times 	= timestamps(start_inds);   % find the timestamps of start events
     end_times    	= timestamps(end_inds);     % find the timestamps of end events
-    
-    if ~isempty(start_times) % Some channels may not have events (e.g. stim switch channel if only 1 stimulator used)
-        end_times(end_times < start_times(1))       = []; % discard potential initial end without start
-        start_times(start_times > end_times(end))   = []; % discard potential final start without end
-    end
     
     switch a % this determines what the start and end timestamps should be assigned to: trial/trial, LED/opto stim or stim/whisk stim.
         case 1

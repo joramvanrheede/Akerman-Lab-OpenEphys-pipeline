@@ -24,7 +24,6 @@ do_CAR                  = parameters.do_CAR;                % If true, do common
 save_sync_chans         = parameters.save_sync_chans;       % save the synchronisation channel outputs
 sync_chans_res          = parameters.sync_chans_res;        % resolution for the synch channel outputs
 
-q_fix_baseline          = parameters.q_fix_baseline;
 baseline_moving_window  = parameters.baseline_moving_window;
 
 %% Hard-coded parameters
@@ -61,14 +60,16 @@ filefolder              = filefolders{fileind}; % this is the folder we're after
 if switch_input_nr ~= 0
     trial_threshold     = 0.25; % For trial, signal goes up to 2.5V or less
     stim_threshold      = 2.7; % For whisking (always during trial), signal goes up to 2.75 - 5V
-    opto_threshold   	= 0.125; % normal TTL logic - 0 to 5V
+    opto_threshold    	= 0.0425; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
     switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
 else
     trial_threshold     = 0.25; % normal TTL logic - 0 to 5V
     stim_threshold      = 2.5; % normal TTL logic - 0 to 5V
-    opto_threshold    	= 0.125; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
+    opto_threshold    	= 0.0425; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
     switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
 end
+
+
 
 adc_channel_nrs        	= [trial_input_nr stim_input_nr opto_input_nr switch_input_nr];
 adc_channel_thresholds 	= [trial_threshold stim_threshold opto_threshold switch_threshold];
@@ -83,15 +84,15 @@ for a = 1:4 % loop through the analog input channels
         thisTTL         = thisTTL - min(smooth(thisTTL(:),101));
         
         %% Special case for fixing baseline of LED input channel:
-        if a == 3 && q_fix_baseline
-
+        if a == 3
+            
             % Moving minimum based on LED conditions res.
             % Operates on resampled 'thisTTL' with 1 sample per 10ms; if
             % vector left in original length this operation takes too long.
-            moving_TTL_min  = movmin(thisTTL(1:30:end),baseline_moving_window); 
+            moving_TTL_min  = movmin(thisTTL(1:30:end),baseline_moving_window);
             
-            % smooth transitions with window, again based on LED res
-            smooth_TTL_min  = smooth(moving_TTL_min,11); 
+            % smooth transitions with window
+            smooth_TTL_min  = smooth(moving_TTL_min,7);
             smooth_TTL_min  = [smooth_TTL_min(:); smooth_TTL_min(end)]; % make sure this vector when resampled will be longer than thisTTL
             
             % bring back to full 30kHz sample rate
@@ -100,23 +101,51 @@ for a = 1:4 % loop through the analog input channels
             % Correct original TTL
             corr_TTL        = thisTTL - resamp_smooth_TTL_min(1:length(thisTTL));
             
-            % For debugging
-%             plot(thisTTL(1:100:end),'k-','LineWidth',2)
-%             hold on
-%             plot(corr_TTL(1:100:end),'b-')
-%             plot([0 length(thisTTL)/100], [adc_channel_thresholds(a) adc_channel_thresholds(a)],'r-')
-%             keyboard
-            % end debugging code
-
+            baseline_wobble = range(smooth_TTL_min);
+            
+            if baseline_wobble < 0.025 % = up to 05%
+                disp(['Baseline stable (' num2str(baseline_wobble/0.05) '% baseline wobble using ' num2str(baseline_moving_window) 'ms moving minimum)'])
+            elseif baseline_wobble < 0.05 % = up to 1%
+                beep
+                warning(['Minor baseline instability (' num2str(baseline_wobble/0.05) '% baseline wobble using ' num2str(baseline_moving_window) 'ms moving minimum)'])
+                disp(['Adjusting minimum threshold for event detection to 1.5% of range'])
+                adc_channel_thresholds(a) = 0.075;
+            elseif baseline_wobble < 0.1 % = up to 2%
+                beep
+                warning(['Moderate baseline instability (' num2str(baseline_wobble/0.05) '% baseline wobble using ' num2str(baseline_moving_window) 'ms moving minimum)'])
+                disp(['Adjusting minimum threshold for event detection to 3 % of range'])
+                adc_channel_thresholds(a) = 0.15;
+            elseif baseline_wobble < 0.25 % = up to 5%
+                beep
+                warning(['High baseline instability (' num2str(baseline_wobble/0.05) '% baseline wobble using ' num2str(baseline_moving_window) 'ms moving minimum)'])
+                disp(['Adjusting minimum threshold for event detection to 7.5% of range'])
+                adc_channel_thresholds(a) = 0.375;
+            elseif baseline_wobble > 0.25
+                beep
+                warning(['Severe baseline instability (' num2str(baseline_wobble/0.05) '% baseline wobble using ' num2str(baseline_moving_window) 'ms moving minimum)'])
+                disp(['Make sure to check baseline moving minimum window'])
+                disp(['Adjusting minimum threshold for event detection to 10% of range'])
+                adc_channel_thresholds(a) = 0.5;
+            end
+            
+            %             % Uncomment For debugging
+            %             figure
+            %             plot(thisTTL(1:100:end),'k-','LineWidth',2)
+            %             hold on
+            %             plot(corr_TTL(1:100:end),'b-')
+            %             plot(resamp_smooth_TTL_min(1:100:end),'c-')
+            %             plot([0 length(thisTTL)/100], [adc_channel_thresholds(a) adc_channel_thresholds(a)],'r-')
+            %             keyboard
+            %             % end debugging code
+            
             % Apply moving minimum correction
             thisTTL         = corr_TTL;
         end
-        %% end debug zone
         
-        starttime       = min(timestamps); % find start time
-        endtime         = max(timestamps); % find end time
-        timestamps      = (1:length(thisTTL)) / 30000; % manually create new timestamps at 30kHz, openephys sometimes suffers from timestamp wobble even though data acquisition is spot on
-        timestamps      = timestamps + starttime; % add start time to the newly created set of timestamps
+        starttime       = min(timestamps);              % find start time
+        endtime         = max(timestamps);              % find end time
+        timestamps      = (1:length(thisTTL)) / 30000;  % manually create new timestamps at 30kHz, openephys sometimes suffers from timestamp wobble even though data acquisition is spot on
+        timestamps      = timestamps + starttime;       % add start time to the newly created set of timestamps
     end
     
     thisTTL_bool   	= thisTTL > adc_channel_thresholds(a); % find where the TTL signal is 'high'
@@ -421,7 +450,7 @@ whisk_stim_amplitudes       = round(whisk_stim_amplitudes / 5) * 5; % round to n
 
 opto_current_levels(isnan(opto_current_levels)) = 0; % Set NaN values (= no LED detected) to 0
 
-% Cluster the range of values together and set each value to the mean of its 
+% Cluster the range of values together and set each value to the mean of its
 % nearest cluster so we don't create spurious conditions
 opto_current_levels     = contract_to_cluster_mean(opto_current_levels,20,'percentage');
 
@@ -480,7 +509,7 @@ for j = 1:n_channels
     fseek(fid{j}, 1024, 0);
 end
 
-%% Common average referencing; OpenEphys reading routine partly adapted from CortexLab/Kilosort 
+%% Common average referencing; OpenEphys reading routine partly adapted from CortexLab/Kilosort
 nsamps = 0;
 flag = 1;
 while flag
