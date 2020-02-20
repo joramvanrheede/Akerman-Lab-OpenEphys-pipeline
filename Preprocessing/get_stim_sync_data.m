@@ -204,7 +204,6 @@ for a = 1:length(adc_channel_nrs) % loop through the analog input channels
             % Apply moving minimum correction
             thisTTL         = corr_TTL;
         end
-        
         starttime       = min(timestamps);              % find start time
         endtime         = max(timestamps);              % find end time
         timestamps      = (1:length(thisTTL)) / 30000;  % manually create new timestamps at 30kHz, openephys sometimes suffers from timestamp wobble even though data acquisition is spot on
@@ -431,8 +430,17 @@ for a = 1:ntrials
     % see whether there was a whisker stimulus
     select_whisk_start 	= whisk_starts >= this_trial_start & whisk_starts <= this_trial_end;
     
-    if sum(select_whisk_start) == 1
-        whisk_stim_onsets(a)        = stim_starts(select_whisk_start);
+    if sum(select_whisk_start) > 0
+        if sum(select_whisk_start) > 1
+            beep
+            warning('Multiple whisker stimulus values found for this trial')
+            
+            first_whisk_start_ind                       = find(select_whisk_start,1);
+            select_whisk_start                          = false(size(select_whisk_start));
+            select_whisk_start(first_whisk_start_ind)   = true;
+        end
+        
+        whisk_stim_onsets(a)            = stim_starts(select_whisk_start);
         whisk_stim_lengths(a)       = whisk_lengths(select_whisk_start);
         whisk_stim_freqs(a)         = whisk_freqs(select_whisk_start);
         whisk_stim_amplitudes(a)    = stim_amps(select_whisk_start);
@@ -446,9 +454,8 @@ for a = 1:ntrials
         else
             whisk_stim_relay(a)     = 1;
         end
-    elseif sum(select_whisk_start) > 1
-        error('Multiple whisker stimulus values found for this trial')
     end
+
     
     % see whether there was an LED on / offset here
     select_opto_start   = opto_firsts >= this_trial_start & opto_firsts <= this_trial_end;
