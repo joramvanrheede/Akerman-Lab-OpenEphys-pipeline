@@ -25,6 +25,35 @@ function merged_data = merge_single_and_multi_unit(single_unit_data, multi_unit_
 
 %% Extensive compatibility checks to make sure files correspond - we do not want errors creeping in here
 
+% First check that files come from the same raw data recording, using the
+% data folder saved in the structs
+multi_unit_folders_win  = split(multi_unit_data.data_folder,'\');
+multi_unit_folders_mac  = split(multi_unit_data.data_folder,'/');
+
+single_unit_folders_win = split(single_unit_data.data_folder,'\');
+single_unit_folders_mac = split(single_unit_data.data_folder,'/');
+
+if length(single_unit_folders_mac) > length(single_unit_folders_win)
+    single_unit_folder  = single_unit_folders_mac{end};
+else
+    single_unit_folder  = single_unit_folders_win{end};
+end
+
+if length(multi_unit_folders_mac) > length(multi_unit_folders_win)
+    multi_unit_folder  = multi_unit_folders_mac{end};
+else
+    multi_unit_folder  = multi_unit_folders_win{end};
+end
+
+if ~strcmp(single_unit_folder,multi_unit_folder)
+    error('Input mismatch - Input single and multi unit data are based on different raw data folders.')
+end
+
+% Now we have established that the files are based on the same raw data,
+% check that there are no mismatches in the preprocessing settings - e.g.
+% different numbers of conditions or other things that could cause
+% misalignment between trials and conditions:
+
 if length(multi_unit_data.conditions) ~= length(single_unit_data.conditions)
     error('Different number of conditions for single_unit_data and multi_unit_data; target file mismatch or preprocessing error in at least one of the files')
 end
@@ -88,7 +117,7 @@ if mismatch_found
     do_continue = questdlg('Mismatches found between single unit and multi-unit condition data; see warnings in command window for details. Continue with merging files anyway?','Title','Yes','No');
 end
 
-%% Add units data to ephys data
+%% If all is well add units data to ephys data
 switch do_continue
     case 'No'
         error('Aborted by user after mismatch found')
