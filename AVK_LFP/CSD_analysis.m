@@ -12,6 +12,15 @@ function[CSD_out,LFP_Avg_out,sinks,sources] = CSD_Analysis(window_edges,CSD_wind
 %           cond_data : condition data from an ephys data
 %           stim type : either 'LED', 'Whisk' or 'LED_WWindow'
 
+% Outputs : 
+%           CSD_Out : Array out of n Channels x m timepoints
+%           LFP_Avg_out : Outputs LFP for given time window averaged across
+%           all trails
+%           sinks : finds local minima in CSD across channels within the
+%           time window specified by CSD window variable
+%           Sources : finds local maxima in above CSD window
+%  Alexander von klemperer 2020
+
 %% Set timing from seconds to sample points
     whisk_time = cond_data.whisk_onset/si; % whisk onset in sampled points; %1
     LED_onset_time = cond_data.LED_onset/si; % 
