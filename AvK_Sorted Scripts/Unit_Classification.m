@@ -1,7 +1,16 @@
 function Unit_Classify = Unit_Classification(Directory,Date);
-
+%% Function which takes three experiment types for a given animal and determines unit stimulus response for each experiment
+% Inputs  : 
+% Directory : Overall directory where all unit files are stored 
+% Date : The animal used eg 20_02_01_1
+%
+%Output : 
+%Unit_Classify : Table structure which provides experiment details for all
+%                units and responsiveness
+% Alexander von Klemperer 2020
+%%
 fn = fullfile(Directory,'Stim Response','Figures', Date);
-recording_check = 0;
+recording_check = 0; % check varaible for if there is no data for an animal in all three of these experiment types
 %% Load timing experiments
 
 matfiles = dir(fullfile(Directory,'Timing',Date, '*.mat'));
@@ -67,25 +76,25 @@ if nfiles>0
 end;
 clear ephys_data Experiments matfiles nfiles p;
 
-if (recording_check == 1);
-
 %% Classify units
-if ~isempty(drive_ephys)
-    for k =1: numel(drive_ephys.conditions);
+if (recording_check == 1); % only continues if at least one experimental condition has data
+
+ if ~isempty(drive_ephys) %checks whether data for this experiment type exists. 
+    for k =1: numel(drive_ephys.conditions); 
    LED_Onsets(k) = (drive_ephys.conditions(k).LED_onset);
     end;
-    i = find(LED_Onsets == 2.5,1)
-   Drive_classify = Unit_Plot(drive_ephys.conditions(i),'Both',[fn '_drive'])
+    i = find(LED_Onsets == 2.5,1) % finds control condition for this experiment (Light and Whisk stim seperated)
+   Drive_classify = Unit_Plot(drive_ephys.conditions(i),'Both',[fn '_drive']) % Checks responsiveness of units to whisk and LED stim in this experiment type 
 else
     Drive_classify = [];
 end;
 clear LED_Onsets;
 
-if ~isempty(timing_ephys)
+if ~isempty(timing_ephys) 
      for k =1: numel(timing_ephys.conditions);
      LED_Onsets(k) = (timing_ephys.conditions(k).LED_onset);
     end;
-    i = find(LED_Onsets == 2.5,1)
+    i = find(LED_Onsets == 2.5,1) % finds control condition for the timing experiment
    Timing_classify = Unit_Plot(timing_ephys.conditions(2),'Both',[fn '_timing']);
 else
         Timing_classify = [];
@@ -95,7 +104,7 @@ if ~isempty(LED_Powers_Ephys)
     for k = 1: numel(LED_Powers_Ephys.conditions);
    LED_Powers(k) = (LED_Powers_Ephys.conditions(k).LED_power);
     end;
-    [~,i] = max(LED_Powers)
+    [~,i] = max(LED_Powers) % finds the condition with maximum LED powers
   LED_Power_classify = Unit_Plot(LED_Powers_Ephys.conditions(i),'Opto',[fn '_Flash'])
 else
     LED_Power_classify = [];
@@ -103,8 +112,8 @@ end;
 clear LED_Onsets;
 
 %% Tabulate unit Classification
-if ~ isempty(timing_ephys)
-Unit_Depth = timing_ephys.unit_depths;
+if ~ isempty(timing_ephys) % by default takes unit depths from timing experiment type
+Unit_Depth = timing_ephys.unit_depths; % creates an array of depth measure for each unit
 else 
     if ~ isempty(drive_ephys)
         Unit_Depth = drive_ephys.unit_depths;
@@ -116,12 +125,12 @@ end;
 z =1;
 
 if ~isempty(Drive_classify)
-Light_Drive_Rate = logical(Drive_classify.Opto_Resp.Good_resp_rate');
+Light_Drive_Rate = logical(Drive_classify.Opto_Resp.Good_resp_rate'); % output is true if spike rate increased following stimulus in given time period
 Light_Drive_Prob = logical(Drive_classify.Opto_Resp.Good_resp_prob');
 Whisk_Drive_Rate = logical(Drive_classify.Whisk_Resp.Good_resp_rate');
 Whisk_Drive_Prob = logical(Drive_classify.Whisk_Resp.Good_resp_prob'); 
 else
-    Light_Drive_Rate = NaN*ones(numel(Unit_Depth),z);
+    Light_Drive_Rate = NaN*ones(numel(Unit_Depth),z); % alternatively if data is empty creates empty buffer array
     Light_Drive_Prob = NaN*ones(numel(Unit_Depth),z);
     Whisk_Drive_Rate = NaN*ones(numel(Unit_Depth),z);
     Whisk_Drive_Prob = NaN*ones(numel(Unit_Depth),z);
@@ -167,6 +176,7 @@ else
     Whisk_Timing_Prob = NaN*ones(numel(Unit_Depth),z);
 end;
         
+%% gets implant number from experiment files (ie is this the same implant number for a given animal
 if ~ isempty(timing_ephys)
 Exp_implant(1) = timing_ephys.parameters.implantation_nr;
 else
@@ -176,7 +186,7 @@ end;
 if ~isempty(drive_ephys)
 Exp_implant(2) = drive_ephys.parameters.implantation_nr;
 else
-Exp_implatn(2) = NaN;
+Exp_implant(2) = NaN;
 end;
 
 if ~isempty(LED_Powers_Ephys)
@@ -206,6 +216,7 @@ clear ed ei
 disp(numel(Unit_Depth));
 disp(Exp_Dates);
        
+%% outputs table with results displaying responsiveness in terms of spike rate and probability in each experimental condition for each of these units.
 
 t = table(Unit_Depth,Light_Drive_Rate,Light_Drive_Prob,Light_LEDFlash_Rate,Light_LEDFlash_Prob,Light_Timing_Rate,Light_Timing_Prob,Whisk_Drive_Rate,Whisk_Drive_Prob,Whisk_Timing_Rate,Whisk_Timing_Prob);
 
@@ -217,7 +228,7 @@ disp('Saving output');
 save(fn,'Unit_Classify');
 disp(['Saved to ' fn]);
 
-else
+else %% if experimental data is all missing
     disp('No timing, drive or flash experiments');
     Unit_Classify = [];
 end;
