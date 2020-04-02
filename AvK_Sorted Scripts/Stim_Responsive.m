@@ -6,18 +6,21 @@ function[Stim_response] = Stim_Responsive(spikes,resp_win,control_win,n_trials,d
 % stimulus at time point 0
 % Control window : control time point to assess spike response against,
 % preceeds stimulus onset
-% plot_figs : should figures be plotted. Default true. 
+%
+%plot_figs : should figures be plotted. Default true.
+%
+% Alexander von klemperer 2020
 
 % Default to all units
     if nargin < 6 || isempty(plot_figs)
         plot_figs        = true;
     end
 
-    psth_bins       = [-0.3:0.001:0.3];
+    psth_bins       = [-0.3:0.001:0.3]; % sets bin size in seconds to be displayed in raster plots
 
 
 % Binned spike rate
-    [spike_rates]        = spike_rates_individual(spikes, resp_win);
+    [spike_rates]        = spike_rates_individual(spikes, resp_win); 
     [spike_probs]        = spike_prob_by_channel(spikes, resp_win);
     
     
@@ -25,23 +28,23 @@ function[Stim_response] = Stim_Responsive(spikes,resp_win,control_win,n_trials,d
     [spike_probs_control]        = spike_prob_by_channel(spikes, control_win);
     
     
-    for k = 1 : numel(spike_probs)
-        [p(k),h(k)] = Chi2_test(spike_probs(k).*n_trials,n_trials,spike_probs_control(k).*n_trials,n_trials,0.05);
-        if (h(k) == 1) && spike_probs(k)>spike_probs_control(k)
-            Good_resp_prob(k) = 1;
+    for k = 1 : numel(spike_probs) % takes spike probablities from all units
+        [p(k),h(k)] = Chi2_test(spike_probs(k).*n_trials,n_trials,spike_probs_control(k).*n_trials,n_trials,0.05); % Statistically tests whether the probalitiy of spiking in post stimulus period is different than control period
+        if (h(k) == 1) && spike_probs(k)>spike_probs_control(k) % if null hypothesis rejected and spiking probability greater than control
+            Good_resp_prob(k) = 1; 
         else
             Good_resp_prob(k) = 0;
          end;
      
-         if (kstest(spike_rates(k,:))==0) && (kstest(spike_rates_control(k,:))==0);
-           [Good_resp_rate(k),pt(k)] = ttest2(spike_rates(k,:),spike_rates_control(k,:),'Tail','right');
+         if (kstest(spike_rates(k,:))==0) && (kstest(spike_rates_control(k,:))==0); % tests whether spike rates across all trials are normally distributed
+           [Good_resp_rate(k),pt(k)] = ttest2(spike_rates(k,:),spike_rates_control(k,:),'Tail','right'); % tests whether spike rates are larger following stimulus than control
          else
          [pt(k),Good_resp_rate(k)] = signrank(spike_rates(k,:),spike_rates_control(k,:),'Tail','right');
         end;
          
      
     end;
-        
+        %sets output structure
         Stim_response.Good_resp_prob = Good_resp_prob;
         Stim_response.Good_resp_rate = Good_resp_rate;
         Stim_response.Spike_rates = spike_rates;
