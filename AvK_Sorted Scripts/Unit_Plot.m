@@ -1,5 +1,22 @@
 function Stim_response = Unit_Plot(input_cond,Stim_Type,fn, units, resp_win, artifact_win)
 
+%% function which tests whether all units for a given experiment type are responsive to either whisker stimulus or Light stimulus
+% INPUT : 
+% input_cond  : condition of interest from ephys structure. eg
+%              ephys_data.condition(1)
+% Stim_Type   : Type of stimulation , 'Whsk','Opto','Both';
+% fn          : file name and directory which figures are saved to
+% Units       : Which units to test, by default all
+% Resp window : window of time to test responsiveness to stimulus (window
+%               inwhich spike rates and probablities are tested)
+% Artifact_win: window of time to NaN out as artifact. 
+%
+% OUTPUT :
+% StimResponse : structure with responsiveness statistics for stimulus. 
+%
+%
+% Alexander von klemperer 2020
+%%
 % Default to all units
 if nargin < 4 || isempty(units)
     units        = ':';
@@ -60,8 +77,8 @@ opto_resp_win       = [0.000 0.05];
     q_artifact                      = spikes > artifact_win(1) & spikes < artifact_win(2);
     spikes(q_artifact)              = NaN;
     
-    if (Stim_Type == 'Whsk') | (Stim_Type == ['Both'])
-    Whisk_Resp = Stim_Responsive(spikes,resp_win,control_win,n_trials,delta_t,true,'Whisker Stim Response',fn);
+    if (Stim_Type == 'Whsk') | (Stim_Type == ['Both']) % if whisker stim or both 
+    Whisk_Resp = Stim_Responsive(spikes,resp_win,control_win,n_trials,delta_t,true,'Whisker Stim Response',fn); % tests whether spike rate or probablity is signifactly larger following stimulus
     else
         Whisk_Resp = [];
     end;
