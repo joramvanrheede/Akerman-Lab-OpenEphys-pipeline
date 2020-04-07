@@ -1,6 +1,6 @@
 function[Stim_response] = Stim_Responsive(spikes,resp_win,control_win,n_trials,delta_t, plot_figs,stim_type,fn)
-%% checks the response of a sorted unit to a stimulus response
-% INputs
+% Stim_Responsive    checks the response of a sorted unit to a stimulus response
+% Inputs
 % spikes : N (units) x M (trials) x C (spike times) Matrix of spikes
 % Response window: window in Ms to evaluate spike response following
 % stimulus at time point 0
@@ -8,6 +8,9 @@ function[Stim_response] = Stim_Responsive(spikes,resp_win,control_win,n_trials,d
 % preceeds stimulus onset
 %
 %plot_figs : should figures be plotted. Default true.
+% stim_type : simply for figure output, figures will be labelled according
+%             to stim_type and saved with file name accordingly. 
+% fn :  directory where output figures should be stored. 
 %
 % Alexander von klemperer 2020
 
@@ -74,7 +77,7 @@ function[Stim_response] = Stim_Responsive(spikes,resp_win,control_win,n_trials,d
     
     
        % Set sensible axis and labels
-    title(['Opto-whisk delay = ' num2str(-delta_t) * 1000 'ms'])
+    title(['Opto-whisk delay = ' num2str(-delta_t * 1000) 'ms'])
     ylabel('Spike count')
     
     set(gca,'FontName','Helvetica','FontWeight','Bold','box','off')
