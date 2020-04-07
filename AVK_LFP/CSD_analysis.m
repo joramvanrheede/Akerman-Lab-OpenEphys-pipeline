@@ -1,4 +1,4 @@
-function[CSD_out,LFP_Avg_out,sinks,sources] = CSD_Analysis(window_edges,CSD_window,si,channels,cond_data,stim_type,OutputFn,Figout);
+function[CSD_out,LFP_Avg_out,sinks,sources,LFP_sinks] = CSD_Analysis(window_edges,CSD_window,channels,cond_data,stim_type,OutputFn,Figout);
 
 %%CSD_Anaylsis(window_edges,CSD_window,si,channels,cond_data,stim_type)
 %
@@ -6,7 +6,7 @@ function[CSD_out,LFP_Avg_out,sinks,sources] = CSD_Analysis(window_edges,CSD_wind
 % Inputs : 
 %           Window edges : time period in S before and after stimulus to
 %           keep.
-%           CSD_window : time windown in S after stimulus to analyse for
+%           CSD_window : time window in S after stimulus to analyse for
 %           sinks
 %           si : sampling interval in s
 %           cond_data : condition data from an ephys data
@@ -22,9 +22,11 @@ function[CSD_out,LFP_Avg_out,sinks,sources] = CSD_Analysis(window_edges,CSD_wind
 %  Alexander von klemperer 2020
 
 %% Set timing from seconds to sample points
-    whisk_time = cond_data.whisk_onset/si; % whisk onset in sampled points; %1
-    LED_onset_time = cond_data.LED_onset/si; % 
-    LED_duration_time = cond_data.LED_duration/si;
+    si = 0.001; % sampling interval in s
+    whisk_time = (cond_data.whisk_onset); % whisk onset in sampled points; %1
+    whisk_time = whisk_time/si;
+    LED_onset_time = (cond_data.LED_onset)/si; % 
+    LED_duration_time = (cond_data.LED_duration)/si;
     LED_offset_time = LED_onset_time+LED_duration_time;
     Chan_string = ['Chans ' num2str(channels(1)) '_' num2str(channels(end))];
     
@@ -42,15 +44,14 @@ clear w CSD sinks sources;
 switch stim_type
     case 'LED'
          LFP_traces = LED_traces;
-         
-           [CSD_out,LFP_Avg_out,sinks,sources,a_window] = Current_Source_Density(LFP_traces,CSD_window);
+         [CSD_out,LFP_Avg_out,sinks,sources,LFP_sinks] = Current_Source_Density(LFP_traces,CSD_window);
     case 'Whisk'
            LFP_traces = whisk_traces;
-           [CSD_out,LFP_Avg_out,sinks,sources,a_window] = Current_Source_Density(LFP_traces,CSD_window);
+           [CSD_out,LFP_Avg_out,sinks,sources,LFP_sinks] = Current_Source_Density(LFP_traces,CSD_window);
     case 'LED_WWindow'
         disp('LED whisk window');
          LFP_traces = LED_Whisk_window;
-            [CSD_out,LFP_Avg_out,sinks,sources,a_window] = Current_Source_Density(LFP_traces,CSD_window);
+            [CSD_out,LFP_Avg_out,sinks,sources,LFP_sinks] = Current_Source_Density(LFP_traces,CSD_window);
   
 end;
 
@@ -76,20 +77,21 @@ if Figout == true;
     ylabel('Channel');
     c.Label.String = 'CSD uA/m^3';
     hold on
-    line_1_x = [a_window(1) a_window(2); a_window(1) a_window(2)];
+    line_1_x = [CSD_window(1) CSD_window(2); CSD_window(1) CSD_window(2)];
     line_1_y = [channels(1) channels(end); channels(1) channels(end)];
     plot(line_1_x,line_1_y','b--');
     
     subplot(2,2,3)
-    plot(sinks);
-    title('Sinks');
+    plot(LFP_sinks);
+    title('LFP Sinks');
     xlabel('Channel');
     ylabel('CSD uA/m^3');
     
     
     subplot(2,2,4)
-    plot(sources);
-    title('Sources');
+    plot(sinks);
+    title('sinks');
+    hline = refline(0,mean(sinks));
     xlabel('Channel');
     ylabel('CSD uA/m^3');
 
