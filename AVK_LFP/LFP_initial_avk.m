@@ -12,7 +12,6 @@
 close all
 
 %% variables to set for script
-
 experiment_type = ['Drive'] % either 'Drive' or 'Timing';
 Outputdirect = 'F:\Multi_unit Coalated\1_POM'
 OutputFn = [Outputdirect '\LFP_Analysis\' experiment_type];
@@ -59,7 +58,7 @@ switch experiment_type
          cond_data = ephys_data.conditions(numel(ephys_data.conditions)); % takes last timing conditon (control condition)
     end;
         LFP_out.Cond_data = cond_data;
-       
+     %{  
        % Performs CSD analysis on Layer 4 for whisk stimulus   
         [CSD_w_L4,LFP_w_L4,Sinks_w_L4,Sources_w_L4] = CSD_analysis(window_edges,CSD_window,si,channels_L4,cond_data,'Whisk',[OutputFn '\Figs\' experiment],true); 
         [~,W_Sink_focus] = min(Sinks_w_L4); % finds channel where smallest sink for L4 is located
@@ -80,7 +79,7 @@ switch experiment_type
         LFP_out.Sources_l_L5 = Sources_l_L5;
         LFP_out.W_Sink_focus =  W_Sink_focus;
         LFP_out.L_Source_focus =  L_Source_focus;
-      
+      %}
 %% LFP CSD additions
 % Calculations which compare CSD and LFP for individual and dual stimulus
 % for Drive experiments only
