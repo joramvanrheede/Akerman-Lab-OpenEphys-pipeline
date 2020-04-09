@@ -25,6 +25,7 @@ function merged_data = merge_single_and_multi_unit(single_unit_data, multi_unit_
 
 %% Extensive compatibility checks to make sure files correspond - we do not want errors creeping in here
 
+
 % First check that files come from the same raw data recording, using the
 % data folder saved in the structs
 multi_unit_folders_win  = split(multi_unit_data.data_folder,'\');
@@ -44,6 +45,10 @@ if length(multi_unit_folders_mac) > length(multi_unit_folders_win)
 else
     multi_unit_folder  = multi_unit_folders_win{end};
 end
+
+disp(['Merging:'])
+disp(['Single unit data: ' single_unit_folder])
+disp(['Multiunit data: ' multi_unit_folder])
 
 if ~strcmp(single_unit_folder,multi_unit_folder)
     error('Input mismatch - Input single and multi unit data are based on different raw data folders.')
@@ -68,42 +73,49 @@ for a = 1:length(multi_unit_data.conditions)
         disp(['Multiunit n trials = ' num2str(multi_cond.n_trials)])
         disp(['Single unit n_trials = ' num2str(single_cond.n_trials)])
         mismatch_found = true;
-    elseif multi_cond.whisk_onset ~= single_cond.whisk_onset
+    end
+    if multi_cond.whisk_onset ~= single_cond.whisk_onset
         warning(['Unequal whisk_onset in condition #' num2str(a)])
         disp(['Multiunit whisk onset = ' num2str(multi_cond.whisk_onset)])
         disp(['Single unit whisk onset = ' num2str(single_cond.whisk_onset)])
         mismatch_found = true;
-    elseif multi_cond.whisk_stimulator ~= single_cond.whisk_stim_nr
+    end
+    if multi_cond.whisk_stimulator ~= single_cond.whisk_stim_nr
         warning(['Unequal whisk_stimulator in condition #' num2str(a)])
         disp(['Multiunit whisk sstimulator = ' num2str(multi_cond.whisk_stimulator)])
         disp(['Single unit whisk stimulator = ' num2str(single_cond.whisk_stim_nr)])
         mismatch_found = true;
-    elseif multi_cond.whisk_amplitude ~= single_cond.whisk_amp
+    end
+    if round(multi_cond.whisk_amplitude/5) ~= round(single_cond.whisk_amp/5)
         warning(['Unequal whisk_amplitude in condition #' num2str(a)])
         disp(['Multiunit whisk amplitude = ' num2str(multi_cond.whisk_amplitude)])
         disp(['Single unit whisk amplitude = ' num2str(single_cond.whisk_amp)])
         mismatch_found = true;
-    elseif multi_cond.whisk_velocity ~= single_cond.whisk_velocity
+    end
+    if multi_cond.whisk_velocity ~= single_cond.whisk_velocity
         warning(['Unequal whisk_velocity in condition #' num2str(a)])
         disp(['Multiunit whisk velocity = ' num2str(multi_cond.whisk_velocity)])
         disp(['Single unit whisk velocity = ' num2str(single_cond.whisk_velocity)])
         mismatch_found = true;
-    elseif multi_cond.whisk_frequency ~= single_cond.whisk_frequency
+    elseif multi_cond.whisk_frequency ~= single_cond.whisk_freq
         warning(['Unequal whisk_frequency in condition #' num2str(a)])
         disp(['Multiunit whisk frequency = ' num2str(multi_cond.whisk_frequency)])
         disp(['Single unit whisk frequency = ' num2str(single_cond.whisk_frequency)])
         mismatch_found = true;
-    elseif multi_cond.LED_onset ~= single_cond.LED_onset
+    end
+    if multi_cond.LED_onset ~= single_cond.LED_onset
         warning(['Unequal LED_onset in condition #' num2str(a)])
         disp(['Multiunit LED onset = ' num2str(multi_cond.LED_onset)])
         disp(['Single unit LED onset = ' num2str(single_cond.LED_onset)])
         mismatch_found = true;
-    elseif multi_cond.LED_power ~= single_cond.LED_power
+    end
+    if round(multi_cond.LED_power/5) ~= round(single_cond.LED_power/5)
         warning(['Unequal LED_power in condition #' num2str(a)])
         disp(['Multiunit LED power = ' num2str(multi_cond.LED_power)])
         disp(['Single unit LED power = ' num2str(single_cond.LED_power)])
         mismatch_found = true;
-    elseif multi_cond.LED_duration ~= single_cond.LED_duration
+    end
+    if multi_cond.LED_duration ~= single_cond.LED_duration
         warning(['Unequal LED_duration in condition #' num2str(a)])
         disp(['Multiunit LED duration = ' num2str(multi_cond.LED_duration)])
         disp(['Single unit LED duration = ' num2str(single_cond.LED_duration)])
@@ -114,7 +126,9 @@ end
 % Ask for user input to judge whether mismatches are serious
 if mismatch_found
     beep
-    do_continue = questdlg('Mismatches found between single unit and multi-unit condition data; see warnings in command window for details. Continue with merging files anyway?','Title','Yes','No');
+    do_continue = questdlg('Mismatches found between single unit and multi-unit condition data; see warnings in command window for details. Continue with merging files anyway?','Title','Yes','No','No');
+else
+    do_continue = 'Yes';
 end
 
 %% If all is well add units data to ephys data
@@ -125,7 +139,8 @@ switch do_continue
         merged_data     = multi_unit_data;
         
         for a = 1:length(merged_data.conditions)
-            merged_data.conditions(a).unit_spikes    = single_unit_data.conditions(a).spikes;
+            merged_data.conditions(a).multiunit_spikes  = merged_data.conditions(a).spikes;
+            merged_data.conditions(a).spikes            = single_unit_data.conditions(a).spikes;
         end
         
         merged_data.unit_depths  = single_unit_data.unit_depths;
