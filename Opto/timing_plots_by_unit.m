@@ -1,19 +1,12 @@
-function timing_data = timing_plots_by_unit(ephys_data, units, resp_win, psth_bins, artifact_win)
-% TIMING_DATA = timing_plots_by_unit(EPHYS_DATA)
+function timing_data = timing_by_unit(ephys_data, units, resp_win, psth_bins, artifact_win)
+% TIMING_DATA = timing_by_unit(EPHYS_DATA)
 % or
-% TIMING_DATA = timing_plots_by_unit(EPHYS_DATA, UNITS, RESP_WIN, PSTH_BINS, ARTIFACT_WIN)
+% TIMING_DATA = timing_by_unit(EPHYS_DATA, UNITS, RESP_WIN, PSTH_BINS, ARTIFACT_WIN)
 % 
-% Visualise data and extract key measures from 'Timing' experiment, in which
+%  extract key measures from 'Timing' experiment, in which
 % an optogenetic stimulus is pulsed at varying time intervals with respect to
 % a whisker stimulus.
 % 
-% This function will plot the following:
-% 
-% Figure 1: Raster plots for each of the time delays
-% Figure 2: Post stimulus time histograms (PSTHs) for each of the time delays
-% Figure 3: Spike density plots for each of the time delays
-% Figure 4: Point plots showing binned spike rate, peak spike rate and peak
-%           spike time for each of the time delays
 % 
 % REQUIRED INPUTS:
 % 
@@ -31,7 +24,7 @@ function timing_data = timing_plots_by_unit(ephys_data, units, resp_win, psth_bi
 % 
 % OUTPUT:
 % 
-% TIMING_DATA structure with fields:
+% TIMING_DATA structure
 % 
 
 
@@ -144,7 +137,7 @@ for a = 1:length(ephys_data.conditions)
     % PSTH
     figure(psth_h)
     subplot(n_delta_ts,1,counter)
-    [plot_handle, all_psth_counts(:,counter), psth_bins]  = psth(spikes, psth_bins);
+    [plot_handle, all_psth_counts(:,counter), psth_bins]  = psth(spikes, psth_bins, false);
     
     q_whisk_time            = psth_bins > 0 & psth_bins < 0.1;
     max_whisk_y(counter)    = max(all_psth_counts(q_whisk_time,counter));
@@ -158,7 +151,7 @@ for a = 1:length(ephys_data.conditions)
     % Spike density plot
     figure(density_plot_h)
     subplot(n_delta_ts,1,counter)
-    [image_handle, density_rates(:,:,counter)]     = spike_density_plot(spikes,1, psth_bins);
+    [image_handle, density_rates(:,:,counter)]     = spike_density_plot(spikes,1, psth_bins,false);
     ylabel('Unit number')
     
     set(gca,'FontName','Helvetica','FontWeight','Bold','box','off')
@@ -307,6 +300,7 @@ timing_data.peak_spike_times        = peak_spike_times;
 
 % Spike probabilities
 timing_data.spike_probabilities    	= spike_probs;
+timing_data.delta_spike_prob        = spike_probs - spike_probs(:,end);
 timing_data.spike_prob_p            = spike_prob_p;
 
 % First spike times
