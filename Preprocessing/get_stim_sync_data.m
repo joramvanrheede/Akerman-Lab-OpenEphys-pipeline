@@ -208,6 +208,7 @@ for a = 1:length(adc_channel_nrs) % loop through the analog input channels
         endtime         = max(timestamps);              % find end time
         timestamps      = (1:length(thisTTL)) / 30000;  % manually create new timestamps at 30kHz, openephys sometimes suffers from timestamp wobble even though data acquisition is spot on
         timestamps      = timestamps + starttime;       % add start time to the newly created set of timestamps
+        
     end
     
     thisTTL_bool   	= thisTTL > adc_channel_thresholds(a); % find where the TTL signal is 'high'
@@ -246,6 +247,7 @@ for a = 1:length(adc_channel_nrs) % loop through the analog input channels
                 stim_segment    = thisTTL(start_inds(i):end_inds(i));
                 opto_powers(i) 	= median(stim_segment) / 5 * 100; % Stimulus amplitude in % of max
             end
+            
         case 4
             switch_up       = start_times(:);
             switch_down     = end_times(:);
@@ -472,7 +474,7 @@ for a = 1:ntrials
         opto_offsets(a)          = max(opto_lasts(select_opto_end));
         opto_current_levels(a)   = max(opto_powers(select_opto_start));
     elseif sum(select_opto_start) ~= sum(select_opto_end)
-        error('Mismatch in number of detected opto onsets and offsets for this trial')
+        warning('Mismatch in number of detected opto onsets and offsets for this trial')
     end
     
 end
