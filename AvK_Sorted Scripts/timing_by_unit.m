@@ -78,7 +78,7 @@ for a = 1:length(ephys_data.conditions)
     counter                         = counter + 1;
     this_t_whisk                    = this_cond.whisk_onset;
     this_t_opto                     = this_cond.LED_onset;
-    if isfield('whisk_stimulator','this_cond')
+    if isfield(this_cond,'whisk_stimulator')
         this_whisker_nr                 = this_cond.whisk_stimulator;
     else
         this_whisker_nr                 = this_cond.whisk_stim_nr;
@@ -90,7 +90,7 @@ for a = 1:length(ephys_data.conditions)
     opto_power(counter)             = this_cond.LED_power;
     
     % Get spike data and remove artifact spikes
-    spikes                          = this_cond.spikes(units, :, :) - this_t_whisk;
+    spikes                          = this_cond.unit_spikes(units, :, :) - this_t_whisk;
     
     q_artifact                      = spikes > artifact_win(1) & spikes < artifact_win(2);
     spikes(q_artifact)              = NaN;
@@ -200,6 +200,7 @@ timing_data.delta_peak_spike_time   = spike_probs - spike_probs(:,end);
 timing_data.spike_probabilities    	= spike_probs;
 timing_data.delta_spike_prob        = spike_probs - spike_probs(:,end);
 timing_data.spike_prob_p            = spike_prob_p;
+timing_data.spike_resp_prob_p        = spike_probs(:,end);
 
 % First spike times
 timing_data.first_spike_times       = first_spikes;
