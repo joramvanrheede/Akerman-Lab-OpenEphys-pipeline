@@ -113,7 +113,7 @@ end
 
 % Ask for user input to judge whether mismatches are serious
 if mismatch_found
-    beep
+   % beep
     do_continue = questdlg('Mismatches found between single unit and multi-unit condition data; see warnings in command window for details. Continue with merging files anyway?','Title','Yes','No');
 end
 
@@ -126,7 +126,9 @@ switch do_continue
         
         for a = 1:length(merged_data.conditions)
             merged_data.conditions(a).unit_spikes    = single_unit_data.conditions(a).spikes;
+            merged_data.conditions(a).multiunit_spikes = multi_unit_data.conditions(a).spikes;
         end
+        merged_data.conditions = rmfield(merged_data.conditions,'spikes');
         
         merged_data.unit_depths  = single_unit_data.unit_depths;
 end
