@@ -85,7 +85,7 @@ if Figout == true;
     plot(LFP_sinks);
     title('LFP Sinks');
     xlabel('Channel');
-    ylabel('CSD uA/m^3');
+    ylabel('LFP (mV)');
     
     
     subplot(2,2,4)
