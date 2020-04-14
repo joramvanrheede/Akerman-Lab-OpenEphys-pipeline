@@ -154,7 +154,7 @@ for a = 1:4 % loop through the analog input channels
     end_inds        = find(diff(thisTTL_bool) < -0.5); % find instances where the TTL goes from high to low
     
     if length(start_inds)>length(end_inds)
-        end_inds = [end_inds length(thisTTL)];
+        end_inds = [end_inds; length(thisTTL)];
     end
     
     start_times 	= timestamps(start_inds); % find the timestamps of start events

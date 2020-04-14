@@ -115,7 +115,12 @@ for a = 1:length(ephys_data.conditions)
     counter                         = counter + 1;
     this_t_whisk                    = this_cond.whisk_onset;
     this_t_opto                     = this_cond.LED_onset;
-    this_whisker_nr                 = this_cond.whisk_stimulator;
+
+    if isfield(this_cond,'whisk_stimulator')
+        this_whisker_nr                 = this_cond.whisk_stimulator;
+    else
+        this_whisker_nr                 = this_cond.whisk_stim_nr;
+    end
     n_trials(counter)             	= this_cond.n_trials;
     
     delta_t(counter)                = this_t_opto - this_t_whisk;
