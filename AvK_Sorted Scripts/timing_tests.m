@@ -1,14 +1,14 @@
-clc; clear all;
+clc; clear all; close all;
 reload = 1;
 animal = '2019_11_28_2'
-sorted_units = 'F:\Sorted_Pom\Timing\2020_01_27_1\2020_01_27-23-Timing.mat'
-multi_unit = 'F:\Multi_unit Coalated\1_POM\Timing\2020_01_27_1\2020_01_27-23-Timing.mat'
+sorted_units = 'F:\Sorted_POM\Timing\2019_11_27_1\2019_11_27-3-Timing.mat'
+multi_unit = 'F:\Multi_unit Coalated\1_POM\Timing\2019_11_27_1\2019_11_27-3-Timing.mat'
 
 experiment_type = ['Timing'] % either 'Drive' or 'Timing';
 Outputdirect = 'F:\Coalated_analysis\POM'
 experiment = [animal '_timing_1'];
 OutputFn = [Outputdirect experiment_type];
-Layer_bounds_width = [178 241 314 273]; % L1 L2/3 L4 L5 L6
+Layer_bounds_width = [178 241 314 273]; % L2/3 L4 L5 L6
 
 %% script starts
 if ~exist([OutputFn '\Figs'] , 'dir')
@@ -78,43 +78,146 @@ L5_delta_recruitment = L5_opto_recruitment - L5_opto_control;
 
 %%
 window = [0.004 0.1]
-unit_of_interest = squeeze(sorted_data.conditions(6).spikes(3,:,:));
-unit_of_interest = unit_of_interest - this_t_whisk;
 
-for k = 1: n_trials
-    a = find(unit_of_interest(k,:) > window(1),1,'first');
-    if~isempty(a)
-    first_spike(k) = unit_of_interest(k,a);
-    else
-    first_spike(k) = NaN;   
-    end;
+unit_of_interest = squeeze(sorted_data.conditions);
+
+for k = 1 : numel(unit_of_interest)
+    unit_of_interest(k).spikes = squeeze(unit_of_interest(k).spikes(1,:,:));
+    unit_of_interest(k).spikes = unit_of_interest(k).spikes - this_t_whisk; 
 end;
-first_spike(first_spike > window(2)) = NaN;
-figure();
-plot(first_spike,'*');
 
-unit_of_interest = squeeze(sorted_data.conditions(end).spikes(3,:,:));
-unit_of_interest = unit_of_interest - this_t_whisk;
+clear k; 
+[unit_of_interest(end).first_spike,unit_of_interest(end).second_spike] = find_spike_times(unit_of_interest(end).spikes,window);
 
-for k = 1: n_trials
-    a = find(unit_of_interest(k,:) > window(1),1,'first');
-    if~isempty(a)
-    first_spike_2(k) = unit_of_interest(k,a);
-    else
-    first_spike_2(k) = NaN;   
-    end;end;
+unit_of_interest(end).first_spike_prob = sum(~isnan(unit_of_interest(end).first_spike))/numel(unit_of_interest(end).first_spike);
+unit_of_interest(end).second_spike_prob = sum(~isnan(unit_of_interest(end).second_spike))/numel(unit_of_interest(end).second_spike);
+unit_of_interest(end).second_spike_prob = unit_of_interest(end).first_spike_prob*unit_of_interest(end).second_spike_prob;
+
+for k = 1 : numel(unit_of_interest)-1;
+[unit_of_interest(k).first_spike,unit_of_interest(k).second_spike] = find_spike_times(unit_of_interest(k).spikes,window);
+unit_of_interest(k).first_spike_prob = sum(~isnan(unit_of_interest(k).first_spike))/numel(unit_of_interest(k).first_spike);
+unit_of_interest(k).second_spike_prob = sum(~isnan(unit_of_interest(k).second_spike))/numel(unit_of_interest(k).second_spike);
+unit_of_interest(k).second_spike_prob = unit_of_interest(k).first_spike_prob*unit_of_interest(k).second_spike_prob;
+
+spike1_test = unit_of_interest(k).first_spike';
+spike1_control = unit_of_interest(end).first_spike';
+
+[n,i] = max([numel(spike1_test) numel(spike1_control)]);
+if i == 1
+    pad = nan*(numel(spike1_control)+1:n)
+    spike1_control(numel(spike1_control)+1:n) = pad;
+else
+    pad = nan*(numel(spike1_test)+1:n)
+    spike1_test(numel(spike1_test)+1:n) = pad;   
+end;
+
+spike2_test = unit_of_interest(k).second_spike';
+spike2_control = unit_of_interest(end).second_spike';
+
+[n,i] = max([numel(spike2_test) numel(spike2_control)]);
+if i == 1
+    pad = NaN*(numel(spike2_control)+1:n)
+    spike2_control(numel(spike2_control)+1:n) = pad;
+else
+    pad = NaN*(numel(spike2_test)+1:n)
+    spike2_test(numel(spike2_test)+1:n) = pad;   
+end;
+
+
+[unit_of_interest(k).first_spike_diff_p,unit_of_interest(k).first_spike_diff_h] = ranksum(unit_of_interest(k).first_spike,unit_of_interest(end).first_spike);
+[unit_of_interest(k).second_spike_diff_p,unit_of_interest(k).second_spike_diff_h] = ranksum(unit_of_interest(k).second_spike,unit_of_interest(end).second_spike);
+[unit_of_interest(k).first_spike_var_p,unit_of_interest(k).first_spike_var_stats] = vartestn([spike1_test spike1_control]);
+[unit_of_interest(k).second_spike_var_p,unit_of_interest(k).second_spike_var_stats] = vartestn([spike2_test spike2_control]);
+
+clear n i pad spike1_control spike1_test;
+
+ [unit_of_interest(k).spike1_prob_diff_p,unit_of_interest(k).spike1_prob_diff_h] = Chi2_test(unit_of_interest(k).first_spike_prob,numel(unit_of_interest(k).first_spike),unit_of_interest(end).first_spike_prob,numel(unit_of_interest(end).first_spike),0.05);
+ [unit_of_interest(k).spike2_prob_diff_p,unit_of_interest(k).spike2_prob_diff_h] = Chi2_test(unit_of_interest(k).second_spike_prob,numel(unit_of_interest(k).first_spike),unit_of_interest(end).second_spike_prob,numel(unit_of_interest(end).first_spike),0.05);
+
+
+end;
+clear k;
+
+close all;
+
+ ha = figure('Name','Spike Timing','NumberTitle','off');
+    set(gcf,'Units','normalized','Position',[.2 .1 .4 .8])% left bottom width height
+   
+subplot(4,1,1);
+for k = 1: numel(unit_of_interest);
 hold on;
-first_spike_2(first_spike_2 > window(2)) = NaN;
+    for j = 1: numel(unit_of_interest(k).first_spike)
+        plot(k,unit_of_interest(k).first_spike(j),'k+','MarkerSize',1);
+    end;
+plot(k,nanmean(unit_of_interest(k).first_spike),'ko')
+    if ~isempty(unit_of_interest(k).first_spike_diff_h);
+        plot(k,unit_of_interest(k).first_spike_diff_h*window(2),'k*')
+        if(unit_of_interest(k).first_spike_var_p <0.05)
+            plot(k,window(2)-0.1*window(2),'r*');
+        end;
+    end;
+    
+end;
+xlim([0 numel(unit_of_interest)+1]);
+ylabel('Time (s)');
+xlabel('Delay condition');
+title('Time to first spike');
 
-plot(first_spike_2,'o');
+subplot(4,1,2);
+for k = 1: numel(unit_of_interest);
+hold on;
+    for j = 1: numel(unit_of_interest(k).second_spike)
+        plot(k,unit_of_interest(k).second_spike(j),'k+','MarkerSize',1);
+    end;
+
+    plot(k,nanmean(unit_of_interest(k).second_spike),'ko')
+    if ~isempty(unit_of_interest(k).second_spike_diff_h);
+        plot(k,unit_of_interest(k).second_spike_diff_h*0.5,'k*');
+        if(unit_of_interest(k).second_spike_var_p <0.05)
+            plot(k,0.4,'r*');
+        end;
+   
+    end;
+    
+end;
+xlim([0 numel(unit_of_interest)+1]);
+ylabel('Time (s)');
+xlabel('Delay condition');
+title('Time to second spike');
+
+subplot(4,1,3);
+for k = 1: numel(unit_of_interest);
+   hold on;
+   plot(k,unit_of_interest(k).first_spike_prob,'ko');      
+end;
+xlim([0 numel(unit_of_interest)+1]);
+xlabel('Delay condition');
+ylabel('Time (s)');
+title('Probability of first spike');
 
 
-h = kstest(first_spike_2);
-h_2 = kstest(first_spike);
-[p,h] = ranksum(first_spike,first_spike_2);
-[p,stats] = vartestn([first_spike' first_spike_2']);
+
+subplot(4,1,4)
+for k = 1: numel(unit_of_interest);
+hold on;
+        plot(k,unit_of_interest(k).second_spike_prob,'ko');
+end;
+xlim([0 numel(unit_of_interest)+1]);
+xlabel('Delay condition');
+ylabel('Time (s)');
+title('Time to first spike');
+title('Probability of second spike');
+clear k j;
 
 %{
+
+figure();
+hold on;
+plot(unit_of_interest(end).first_spike,'b*');
+plot(unit_of_interest(end).second_spike,'r*');
+
+
+
 for k = 4:7;
 figure();
 subplot(3,1,1);
