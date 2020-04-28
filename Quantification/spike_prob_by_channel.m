@@ -19,14 +19,21 @@ function [spike_probs, n_hits, n_trials]  = spike_prob_by_channel(spikes, time_w
 spikes_in_win                       = spikes >= time_win(1) & spikes <= time_win(2);
 
 % Find 'hit' trials (with at least 1 spike)
-spike_hits_by_trial_by_channel      = sum(spikes_in_win,3) > 0;
+if size(spikes_in_win,3) > 1 % if not working with squeezed data eg n units x m trials x c spikes
+    spike_hits_by_trial_by_channel      = sum(spikes_in_win,3) > 0;
+    % Take sum over trials to get number of 'hit' trials
+    n_hits                              = sum(spike_hits_by_trial_by_channel,2);
+    % Take mean over trials to get estimated spike probability
+    spike_probs                         = mean(spike_hits_by_trial_by_channel,2);
+    % Report number of trials as well, for ease of following up with chi square
+    % or Fisher's exact test
+    n_trials                            = size(spikes, 2);
 
-% Take mean over trials to get estimated spike probability
-spike_probs                         = mean(spike_hits_by_trial_by_channel,2);
+else % if working with squeezed data (m trials x c spikes).
+    spike_hits_by_trial_by_channel      = sum(spikes_in_win,2) > 0;
+    n_hits                              = sum(spike_hits_by_trial_by_channel,1);
+    spike_probs                         = mean(spike_hits_by_trial_by_channel,1);
+    n_trials                            = size(spikes, 1);
+end; % if statement 
+end
 
-% Take sum over trials to get number of 'hit' trials
-n_hits                              = sum(spike_hits_by_trial_by_channel,2);
-
-% Report number of trials as well, for ease of following up with chi square
-% or Fisher's exact test
-n_trials                            = size(spikes, 2);
