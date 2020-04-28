@@ -40,7 +40,7 @@ ops.NT                  = 32*1024+ ops.ntbuff;% this is the batch size (try decr
 % the following options can improve/deteriorate results. 		
 % when multiple values are provided for an option, the first two are beginning and ending anneal values, 		
 % the third is the value used in the final pass. 		
-ops.Th               = [4 10 10];    % threshold for detecting spikes on template-filtered data ([6 12 12])		
+ops.Th               = [3 6 6];    % threshold for detecting spikes on template-filtered data ([6 12 12])		
 ops.lam              = [5 20 20];   % large means amplitudes are forced around the mean ([10 30 30])		
 ops.nannealpasses    = 4;            % should be less than nfullpasses (4)		
 ops.momentum         = 1./[20 400];  % start with high momentum and anneal (1./[20 1000])		
@@ -50,7 +50,7 @@ ops.splitT           = .1;           % lower threshold for splitting (.1)
 		
 % options for initializing spikes from data		
 ops.initialize      = 'no'; %'fromData' or 'no'		
-ops.spkTh           = -6;      % spike threshold in standard deviations (4)		
+ops.spkTh           = 4;      % spike threshold in standard deviations (4)		
 ops.loc_range       = [3  1];  % ranges to detect peaks; plus/minus in time and channel ([3 1])		
 ops.long_range      = [30  6]; % ranges to detect isolated peaks ([30 6])		
 ops.maskMaxChannels = 5;       % how many channels to mask up/down ([5])		
