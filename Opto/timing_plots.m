@@ -134,12 +134,14 @@ for a = 1:length(ephys_data.conditions)
     spikes(q_artifact)              = NaN;
     
     % Binned spike rate
-    [spike_rates(:,counter)]        = spike_rate_by_trial(spikes, resp_win);
+    spike_rates(:,counter)          = NaN;
+    [spike_rates(1:n_trials(counter),counter)]        = spike_rate_by_trial(spikes, resp_win);
     mean_spike_rate(counter)        = mean(spike_rates(:,counter));
     serr_spike_rate(counter)        = serr(spike_rates(counter,:));
     
     % Peak spike rate and time
-    [peak_spike_rates(:,counter), peak_spike_times(:,counter)]  = peak_ROF_by_trial(spikes, resp_win, rate_kernel_size);
+    [peak_spike_rates(:,counter), peak_spike_times(:,counter)]  = deal(NaN);
+    [peak_spike_rates(1:n_trials(counter),counter), peak_spike_times(1:n_trials(counter),counter)]  = peak_ROF_by_trial(spikes, resp_win, rate_kernel_size);
     
     mean_peak_spike_rate(counter)   = mean(peak_spike_rates(:,counter));
     serr_peak_spike_rate(counter)   = serr(peak_spike_rates(:,counter));
