@@ -187,6 +187,11 @@ all_spike_rates(:,:,1)    = all_spike_rates(:,:,1) - mean(all_opto_spike_rates(:
 % correct for spontaneous
 all_spike_rates(:,:,2)    = all_spike_rates(:,:,2) - mean(all_spont_spike_rates(:,:,2),2);
 
+%% 
+mean_whisk_rates    = squeeze(mean(all_spike_rates,2));
+
+mean_opto_rates     = squeeze(mean(mean(all_opto_spike_rates,2),3));
+
 
 %% Plotting:
 
@@ -272,7 +277,7 @@ ylabel('First spike opto')
 
 [first_spike_h, first_spike_p]              = ttest2(first_spikes_all(:,:,1)',first_spikes_all(:,:,2)');
 
-keyboard
+
 spike_prob_hits     = n_hits;
 spike_prob_misses   = n_trials - spike_prob_hits;
 
@@ -288,7 +293,6 @@ end
 
 %% Generate output data structure
 
-
 drive_data.data_folder          = ephys_data.data_folder;
 drive_data.channels             = units;
 drive_data.resp_win             = resp_win;
@@ -298,9 +302,15 @@ drive_data.bin_size             = bin_size;
 drive_data.artifact_win         = artifact_win;
 
 drive_data.binned_rates         = all_spike_rates;
+drive_data.mean_whisk_rates     = mean_whisk_rates;
+drive_data.delta_whisk_rates    = mean_whisk_rates(:,1) - mean_whisk_rates(:,2);
 drive_data.spike_rate_p         = spike_rate_p;
 
+drive_data.opto_rates           = all_opto_spike_rates;
+drive_data.mean_opto_rates    	= mean_opto_rates;
+
 drive_data.spike_probs          = spike_probs;
+drive_data.delta_spike_prob     = spike_probs(:,1) - spike_probs(:,2);
 drive_data.spike_prob_p         = spike_prob_p;
 
 drive_data.first_spike_times    = first_spike_times;
