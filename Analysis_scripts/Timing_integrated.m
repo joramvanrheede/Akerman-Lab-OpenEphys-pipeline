@@ -8,13 +8,13 @@ sorted_folder       = '/Users/Joram/Data/Sorting/Synced_individual';
 multiunit_folder    = '/Users/Joram/Data/Preprocessed';
 
 % The names of the group folders (also used in plotting as group names)
-group_folders     	= {'M1' 'S1'}; %
+group_folders     	= {'GTRB' 'POM' 'M1' 'S1'}; %
 
 % Name of target experiment title folder
 expt_folder_name  	= 'Timing';
 
 % Reload and re-merge the single and multiunit data?
-q_reload            = 0; % Reload all data?
+q_reload            = 1; % Reload all data?
 
 %% Inclusion settings and criteria
 target_opto_rate  	= 60;   % Target opto response in Hz % 60? 100?
@@ -25,7 +25,7 @@ min_opto_rate       = 10;  	% minimal opto response rate
 max_depth           = -25;  % Depth relative to L4 sink (negative numbers = towards pia)
 min_depth           = -400; % Depth relative to L4 sink (negative numbers = towards pia)
 
-whisk_resp_p_thresh = 0.2;  % p-value threshold for increase in spike probability to whisk stimulus
+whisk_resp_p_thresh = 1;  % p-value threshold for increase in spike probability to whisk stimulus
 
 L5_chans            = 5:12; % Layer 5 channels relative to the L4 sink (sink channel + [L5_chans])
 
@@ -110,6 +110,10 @@ if q_reload
     clear multi_groups
     % clear sorted_groups
 end
+
+
+
+
 
 
 for a = 1:length(merged_groups)
