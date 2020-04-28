@@ -92,15 +92,13 @@ for a = 1:length(ephys_data.conditions)
     opto_power(counter)             = this_cond.LED_power;
     
     % Get spike data and remove artifact spikes
-    spikes                          = this_cond.spikes(units, :, :) - this_t_whisk;
-    
+    spikes                          = this_cond.unit_spikes(units, :, :) - this_t_whisk;
     q_artifact                      = spikes > artifact_win(1) & spikes < artifact_win(2);
     spikes(q_artifact)              = NaN;
     
     % Binned spike rate
     [spike_rates(:,counter)]                                    = spike_rate_by_channel(spikes, resp_win);
     [spike_probs(:,counter)]                                    = spike_prob_by_channel(spikes, resp_win);
-
     [first_spikes(:,counter), first_spike_jitters(:,counter)]   = first_spike_by_channel(spikes, resp_win);
     if a > 1
         old_max_n_trials                                            = size(first_spikes_ind,2);
@@ -121,12 +119,16 @@ for a = 1:length(ephys_data.conditions)
     %% opto resp -- is this relevant?
     
     opto_spikes                  	= (spikes + this_t_whisk) - this_t_opto;
-    
+    q_artifact                      = opto_spikes > artifact_win(1) & opto_spikes < artifact_win(2);
+    opto_spikes(q_artifact)              = NaN;
+        
     opto_spike_rates(:,1:n_trials(counter),counter) 	= spike_rates_individual(opto_spikes, opto_resp_win);
+    [opto_spike_probs(:,counter), opto_n_hits(:,counter), opto_n_trials(:,counter)]  = spike_prob_by_channel(opto_spikes, opto_resp_win);
+    
     
     %%
-    spont_spike_rates(:,1:n_trials(counter),counter)    = spike_rates_individual(ephys_data.conditions(a).spikes,resp_win);
-    [spont_spike_probs(:,counter), spont_n_hits(:,counter), spont_n_trials(:,counter)]  = spike_prob_by_channel(ephys_data.conditions(a).spikes, resp_win);
+    spont_spike_rates(:,1:n_trials(counter),counter)    = spike_rates_individual(ephys_data.conditions(a).unit_spikes,resp_win);
+    [spont_spike_probs(:,counter), spont_n_hits(:,counter), spont_n_trials(:,counter)]  = spike_prob_by_channel(ephys_data.conditions(a).unit_spikes, resp_win);
     
     %% Figures
     
@@ -215,12 +217,16 @@ timing_data.density_rates           = density_rates;
 % Binned spike rates
 timing_data.spike_rate              = spike_rates;
 timing_data.spike_rate_by_trial     = spike_rates_ind;
+timing_data.spont_rate_by_trial     = spont_spike_rates;
+timing_data.opto_rate_by_trial      = opto_spike_rates;
 
 timing_data.spike_rate_p            = binned_rate_p;
 
 % Peak spike rates
 timing_data.peak_spike_rates        = peak_spike_rates;
+
 timing_data.delta_peak_spike_rate   = peak_spike_rates - peak_spike_rates(:,end);
+
 
 % Peak spike times
 timing_data.peak_spike_times        = peak_spike_times;
@@ -230,6 +236,9 @@ timing_data.delta_peak_spike_time   = peak_spike_times - peak_spike_times(:,end)
 timing_data.spike_probabilities    	= spike_probs;
 timing_data.delta_spike_prob        = spike_probs - spike_probs(:,end);
 timing_data.spike_prob_p            = spike_prob_p;
+timing_data.spont_probs             = spont_spike_probs;
+timing_data.opto_probs             = opto_spike_probs;
+
 
 % First spike times
 timing_data.first_spike_times       = first_spikes;
