@@ -57,33 +57,8 @@ for a = 1:length(expt_folders)
         disp(['Loading ' this_expt_name '...'])
         load(fullfile(fullfolder, this_expt_name));
         
-        %%
-        for i = 1:length(ephys_data.conditions)
-            cond_data   = ephys_data.conditions(i);
-            
-            [CSD,w,sinks,sources,analysis_win] = Current_Source_Density(cond_data.LFP_trace(:,:,900:1200),[1 200]);
-            
-            LFP_means       = squeeze(mean(cond_data.LFP_trace,2));
-            LFP_min_profile = min(LFP_means(:,900:1200),[],2);
-            LFP_min_profile = smooth(LFP_min_profile,5);
-            LFP_min_chan  	= find(LFP_min_profile == min(LFP_min_profile));
-            
-            sink_profile    = smooth(sinks,5);
-            max_sink_chan  	= find(sink_profile == min(sink_profile))+1;
-            
-            ephys_data.conditions(i).sink_profile       = sink_profile;
-            ephys_data.conditions(i).max_sink_chan      = max_sink_chan;
-            
-            ephys_data.conditions(i).LFP_min_profile 	= LFP_min_profile;
-            ephys_data.conditions(i).LFP_min_chan       = LFP_min_chan;
-        end
-        %%
-        
         % Use drive_function to extract summary data about this drive experiment
-        experiment                      = drive_function(ephys_data, resp_win, psth_bins);
-        experiment.sink_profile         = ephys_data.conditions(2).sink_profile;
-        experiment.max_sink_chan        = ephys_data.conditions(2).max_sink_chan;
-        drive_data(a).experiment(b)     = experiment;
-        
+        drive_data(a).experiment(b)    = drive_function(ephys_data, resp_win, psth_bins);
+
     end
 end

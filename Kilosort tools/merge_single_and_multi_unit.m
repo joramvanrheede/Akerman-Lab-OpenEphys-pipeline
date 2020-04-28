@@ -129,6 +129,9 @@ if mismatch_found
     do_continue = questdlg('Mismatches found between single unit and multi-unit condition data; see warnings in command window for details. Continue with merging files anyway?','Title','Yes','No','No');
 else
     do_continue = 'Yes';
+
+   % beep
+    do_continue = questdlg('Mismatches found between single unit and multi-unit condition data; see warnings in command window for details. Continue with merging files anyway?','Title','Yes','No');
 end
 
 %% If all is well add units data to ephys data
@@ -141,7 +144,10 @@ switch do_continue
         for a = 1:length(merged_data.conditions)
             merged_data.conditions(a).multiunit_spikes  = merged_data.conditions(a).spikes;
             merged_data.conditions(a).spikes            = single_unit_data.conditions(a).spikes;
+            merged_data.conditions(a).unit_spikes    = single_unit_data.conditions(a).spikes;
+            merged_data.conditions(a).multiunit_spikes = multi_unit_data.conditions(a).spikes;
         end
+        merged_data.conditions = rmfield(merged_data.conditions,'spikes');
         
         merged_data.unit_depths  = single_unit_data.unit_depths;
 end

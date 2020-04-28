@@ -1,4 +1,4 @@
-function drive_data = drive_plots_by_unit(ephys_data, units, resp_win, psth_bins, artifact_win)
+function drive_data = drive_by_unit(ephys_data, units, resp_win, psth_bins, artifact_win)
 % function drive_data = drive_plots_by_unit(EPHYS_DATA),
 % function drive_data = drive_plots_by_unit(EPHYS_DATA, UNITS, RESP_WIN, PSTH_BINS, ARTIFACT_WIN)
 % 
@@ -73,17 +73,7 @@ opto_psth_bins          = [(-opto_psth_margin):bin_size:(opto_duration+opto_psth
 
 plot_lims               = [psth_bins(1) psth_bins(end)];
 opto_plot_lims          = [opto_psth_bins(1) opto_psth_bins(end)];
-
-% Pre-create figures of the right size
-raster_fig_h            = figure;
-set(gcf,'Units','normalized','Position',[.1 .2 .8 .4],'PaperPositionMode','auto')
-psth_fig_h              = figure;
-set(gcf,'Units','normalized','Position',[.1 .2 .8 .4],'PaperPositionMode','auto')
-density_fig_h           = figure;
-set(gcf,'Units','normalized','Position',[.1 .2 .8 .4],'PaperPositionMode','auto')
-opto_fig_h              = figure;
-set(gcf,'Units','normalized','Position',[.1 .2 .8 .4],'PaperPositionMode','auto')
-        
+       
 for a = 1:length(cond_data)
     
     spikes                          = cond_data(a).spikes(units,:,:) - cond_data(a).whisk_onset;
@@ -107,77 +97,32 @@ for a = 1:length(cond_data)
     % Quantify spikes in spontaneous window
     spont_spikes                    = cond_data(a).spikes(units,:,:);
     all_spont_spike_rates(:,:,a)	= spike_rates_individual(spont_spikes, opto_resp_win);
-    
-    
-    %% Make plots
-    figure(raster_fig_h)
-    
-    % Raster plot
-    subplot(1,2,a)
-    raster_plot(spikes,1)
-    xlim(plot_lims)
-    ylabel('Unit number')
-    xlabel('Time (s)')
-    fixplot
-    title(cond_names{a})
-    
+
     % PSTH
-    figure(psth_fig_h)
-    subplot(1,2,a)
-    [psth_handle psth_counts(:,a)] = psth(spikes,psth_bins);
-    title(cond_names{a})
-    fixplot
+
+    [psth_handle psth_counts(:,a)] = psth(spikes,psth_bins, false);
+
     
     % Spike density plot
-    figure(density_fig_h)
-    subplot(1,2,a)
-    [image_handle, spike_density_counts(:,:,a)] = spike_density_plot(spikes,1,psth_bins);
-    ylabel('Unit number')
-    xlabel('Time (s)')
-    color_lims = [0 robust_max(spike_density_counts(:),clim_perc)];
-    set(gca,'CLim',color_lims)
-    colorbar
-    title([cond_names{a} ' spike rate'])
+
+    [image_handle, spike_density_counts(:,:,a)] = spike_density_plot(spikes,1,psth_bins, false);
+
     
     if a == 2 % Control condition; make plots for opto only as well
-        
-        figure(opto_fig_h)
-        
-        % Opto raster
-        subplot(1,3,1)
-        raster_plot(opto_spikes,1)
-        xlim(opto_plot_lims)
-        ylabel('Unit number')
-        xlabel('Time (s)')
-        fixplot
-        title('Opto only raster plot')
-        
+
         % Opto PSTH
-        subplot(1,3,2)
-        [opto_psth_handle, opto_psth_counts] = psth(opto_spikes,opto_psth_bins);
-        title('Opto only PSTH')
-        fixplot
+        [opto_psth_handle, opto_psth_counts] = psth(opto_spikes,opto_psth_bins, false);
+
         
         % Opto spike density plot
-        subplot(1,3,3)
-        [image_handle, opto_spike_density_counts] = spike_density_plot(opto_spikes,1,opto_psth_bins);
-        ylabel('Unit number')
-        xlabel('Time (s)')
-        color_lims = [0 robust_max(opto_spike_density_counts(:),clim_perc)];
-        set(gca,'CLim',color_lims)
-        colorbar
-        title(['Opto only spike density'])
+
+        [image_handle, opto_spike_density_counts] = spike_density_plot(opto_spikes,1,opto_psth_bins, false);
+
         
     end  
 end
 
-% Make sure that y-axes are the same in PSTH subplots in the same figure
-figure(psth_fig_h)
-subplot_equal_y
 
-% Make sure that colour scaling is the same in spike density subplots in the same figure 
-figure(density_fig_h)
-subplot_equal_clims
 
 %% Corrections for opto background and for spontaneous
 
@@ -187,84 +132,11 @@ all_spike_rates(:,:,1)    = all_spike_rates(:,:,1) - mean(all_opto_spike_rates(:
 % correct for spontaneous
 all_spike_rates(:,:,2)    = all_spike_rates(:,:,2) - mean(all_spont_spike_rates(:,:,2),2);
 
-
-%% Plotting:
-
-% Create figure of the right size
-mean_plots_h            = figure;
-set(gcf,'Units','normalized','Position',[.1 .2 .8 .4],'PaperPositionMode','auto')
-
-%% Beeswarmplot spike rates
-
-lineplot_spike_rates    = squeeze(mean(all_spike_rates,2));
-
-subplot(1,3,1)
-scatter(lineplot_spike_rates(:,2),lineplot_spike_rates(:,1))
-hold on
-xlim(ylim)
-plot(xlim,xlim);
-fixplot
-xlabel('Spike rate control')
-ylabel('Spike rate opto')
-
-
-
-
-%% Beeswarmplot peak spike rate
-
-
-
-subplot(1,3,2)
-scatter(peak_spike_rates(:,2),peak_spike_rates(:,1))
-hold on
-xlim(ylim)
-plot(xlim,xlim);
-fixplot
-xlabel('Peak rate control')
-ylabel('Peak rate opto')
-
-% [peak_rate_h,peak_rate_p]               = ttest2(peak_spike_rates(:,1)',peak_spike_rates(:,2)');
-
-
-%% Beeswarmplot peak spike time
-
-
-subplot(1,3,3)
-set(gcf,'PaperPositionMode','auto')
-scatter(peak_spike_times(:,2),peak_spike_times(:,1))
-hold on
-xlim(ylim)
-plot(xlim,xlim);
-fixplot
-xlabel('Peak time control')
-ylabel('Peak time opto')
-
-% [first_time_h,first_time_p]               = ttest2(first_spike_times(:,1)',first_spike_times(:,2)');
-
 %% 
-figure
-set(gcf,'Units','normalized','Position',[.1 .2 .8 .4],'PaperPositionMode','auto')
+mean_whisk_rates    = squeeze(mean(all_spike_rates,2));
 
-subplot(1,2,1)
-set(gcf,'PaperPositionMode','auto')
-scatter(spike_probs(:,2),spike_probs(:,1))
-hold on
-xlim(ylim)
-plot(xlim,xlim);
-fixplot
-xlabel('Spike probability control')
-ylabel('Spike probability opto')
+mean_opto_rates     = squeeze(mean(mean(all_opto_spike_rates,2),3));
 
-
-subplot(1,2,2)
-set(gcf,'PaperPositionMode','auto')
-scatter(first_spike_times(:,2),first_spike_times(:,1))
-hold on
-xlim(ylim)
-plot(xlim,xlim);
-fixplot
-xlabel('First spike control')
-ylabel('First spike opto')
 
 %%
 
@@ -272,7 +144,7 @@ ylabel('First spike opto')
 
 [first_spike_h, first_spike_p]              = ttest2(first_spikes_all(:,:,1)',first_spikes_all(:,:,2)');
 
-keyboard
+
 spike_prob_hits     = n_hits;
 spike_prob_misses   = n_trials - spike_prob_hits;
 
@@ -288,7 +160,6 @@ end
 
 %% Generate output data structure
 
-
 drive_data.data_folder          = ephys_data.data_folder;
 drive_data.channels             = units;
 drive_data.resp_win             = resp_win;
@@ -298,9 +169,15 @@ drive_data.bin_size             = bin_size;
 drive_data.artifact_win         = artifact_win;
 
 drive_data.binned_rates         = all_spike_rates;
+drive_data.mean_whisk_rates     = mean_whisk_rates;
+drive_data.delta_whisk_rates    = mean_whisk_rates(:,1) - mean_whisk_rates(:,2);
 drive_data.spike_rate_p         = spike_rate_p;
 
+drive_data.opto_rates           = all_opto_spike_rates;
+drive_data.mean_opto_rates    	= mean_opto_rates;
+
 drive_data.spike_probs          = spike_probs;
+drive_data.delta_spike_prob     = spike_probs(:,1) - spike_probs(:,2);
 drive_data.spike_prob_p         = spike_prob_p;
 
 drive_data.first_spike_times    = first_spike_times;

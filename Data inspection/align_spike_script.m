@@ -2,16 +2,14 @@
 % ephys trace (based on simple thresholding)
 
 % which file to use
-% datafile                    = '/Volumes/PS2Akermanlab/MJB/In_Vivo/2019_04_04/CBLK_2019-04-04_18-10-49_10/100_CH16.continuous';
-datafile                    = '/Volumes/PS2Akermanlab/MJB/In_Vivo/2019_09_16/CBLK_2019-04-04_18-10-49_10/100_CH31.continuous';
-% datafile                    = '/Volumes/PS2Akermanlab/MJB/In_Vivo/2019_04_04/CBLK_2019-04-04_16-59-57_1/100_CH31.continuous' % No opto
+datafile                    = '/Volumes/Akermanlab/Joram/In_vivo_mouse_data/2018_04_19/ChR2-YFP-ON_2018-04-19_16-52-41_5/100_CH19.continuous';
 
-threshold                   = 8;            % threshold in SDs for detecting spikes
+threshold                   = 10;            % threshold in SDs for detecting spikes
 range                       = 30;           % samples are plotted from -range to +range (centered on sample '0', the negative peak of the signal)
 qplot                       = true;         % plot traces?
-num_traces                  = 3000;        % how many traces to plot (number or 'all')
+num_traces                  = 33;        % how many traces to plot (number or 'all')
 
-qreload                     = 1;
+qreload                     = 0;
 
 if qreload
     % Load data

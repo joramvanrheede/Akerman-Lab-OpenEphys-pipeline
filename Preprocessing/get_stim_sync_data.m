@@ -146,8 +146,6 @@ for a = 1:length(adc_channel_nrs) % loop through the analog input channels
         disp(['File ' datafolder filesep data_prefix 'ADC' num2str(adc_channel_nrs(a)) '.continuous'])
         [thisTTL timestamps info] = load_open_ephys_data([datafolder filesep data_prefix 'ADC' num2str(adc_channel_nrs(a)) '.continuous']);
         
-        thisTTL         = thisTTL - min(smooth(thisTTL(:),101));
-        
         %% Special case for fixing baseline of LED input channel:
         if a == 3
 
@@ -218,17 +216,13 @@ for a = 1:length(adc_channel_nrs) % loop through the analog input channels
     start_inds      = find(diff(thisTTL_bool) > 0.5);   % find instances where the TTL goes from low to high
     end_inds        = find(diff(thisTTL_bool) < -0.5);  % find instances where the TTL goes from high to low
     
-    if length(start_inds)>length(end_inds)
-        end_inds = [end_inds; length(thisTTL)];
+    if ~isempty(start_inds) % Some channels may not have events (e.g. stim switch channel if only 1 stimulator used)
+        end_inds(end_inds < start_inds(1))       = []; % discard potential initial end without start
+        start_inds(start_inds > end_inds(end))   = []; % discard potential final start without end
     end
     
-    start_times 	= timestamps(start_inds); % find the timestamps of start events
-    end_times    	= timestamps(end_inds); % find the timestamps of end events
-    
-    if ~isempty(start_times) & ~isempty(end_times)  % Some channels may not have events (e.g. stim switch channel if only 1 stimulator used)
-        end_times(end_times < start_times(1))       = []; % discard potential initial end without start
-        start_times(start_times > end_times(end))   = []; % discard potential final start without end
-    end
+    start_times 	= timestamps(start_inds);   % find the timestamps of start events
+    end_times    	= timestamps(end_inds);     % find the timestamps of end events
     
     switch a % this determines what the start and end timestamps should be assigned to: trial/trial, LED/opto stim or stim/whisk stim.
         case 1
@@ -242,10 +236,7 @@ for a = 1:length(adc_channel_nrs) % loop through the analog input channels
             stim_amps       = NaN(size(start_inds));
             for i = 1:length(start_inds)
                 stim_segment    = thisTTL(start_inds(i):end_inds(i));
-                if isempty(stim_segment)
-                    stim_segment = NaN;
-                end
-                stim_amps(i)   	= ((max(stim_segment) - 2.5) / 2.5) * 100; % Stimulus amplitude in % of max
+                stim_amps(i)   	= ((median(stim_segment) - 2.5) / 2.5) * 100; % Stimulus amplitude in % of max
             end
         case 3
             opto_starts      = start_times(:);
@@ -254,11 +245,9 @@ for a = 1:length(adc_channel_nrs) % loop through the analog input channels
             opto_powers      = NaN(size(start_inds));
             for i = 1:length(start_inds)
                 stim_segment    = thisTTL(start_inds(i):end_inds(i));
-                if isempty(stim_segment)
-                    stim_segment = NaN;
-                end
-                opto_powers(i) 	= max(stim_segment) / 5 * 100; % Stimulus amplitude in % of max
+                opto_powers(i) 	= median(stim_segment) / 5 * 100; % Stimulus amplitude in % of max
             end
+            
         case 4
             switch_up       = start_times(:);
             switch_down     = end_times(:);
@@ -318,21 +307,18 @@ end
 
 %% A lot of cleanup and repair from here
 
+if isempty(stim_starts)
+    stim_starts = [0 0.02];
+    stim_ends   = [0.01 00.03]; % set some fake whisk stimuli outside of the trials to avoid empty vars 
+    stim_amps   = [1 1];
+end
+
 % determine median trial length
 trial_times     = trial_ends - trial_starts;
 trial_length    = round(median(trial_times),1);
 
 total_length 	= round(median(diff(trial_starts)),1);
 trial_gap       = median(trial_starts(2:end)-trial_ends(1:end-1));
-
-
-%%
-
-if isempty(stim_starts)
-    stim_starts = [0 0.02];
-    stim_ends   = [0.01 00.03]; % set some fake whisk stimuli outside of the trials to avoid empty vars 
-    stim_amps   = [1 1];
-end
 
 %% Work out the velocity (length) of a whisk, and the frequency of a whisker stimulus burst
 
