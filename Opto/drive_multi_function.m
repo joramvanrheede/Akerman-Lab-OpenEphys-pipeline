@@ -1,5 +1,5 @@
 function [drive_multi_data] = drive_multi_function(ephys_data, whisk_resp_win, psth_bins, n_stims)
-% function [DRIVE_DATA] = drive_multi_function(EPHYS_DATA, WHISK_RESP_WIN, PSTH_BINS)
+% function [DRIVE_DATA] = drive_function(EPHYS_DATA, WHISK_RESP_WIN, PSTH_BINS)
 % 
 % Extract summary data of the spiking response in the 'Drive' experiment
 % 

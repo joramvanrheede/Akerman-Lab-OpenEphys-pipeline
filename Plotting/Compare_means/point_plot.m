@@ -20,7 +20,7 @@ function point_plot(in_data, in_groups,x_vals)
 
 marker_alpha    = [0.3];
 
-if ~isvector(in_data)
+if ismatrix(in_data)
     if exist('in_groups','var')
         x_vals      = in_groups;
     end

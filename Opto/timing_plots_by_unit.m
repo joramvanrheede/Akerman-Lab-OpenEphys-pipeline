@@ -78,7 +78,7 @@ for a = 1:length(ephys_data.conditions)
     counter                         = counter + 1;
     this_t_whisk                    = this_cond.whisk_onset;
     this_t_opto                     = this_cond.LED_onset;
-    if isfield('whisk_stimulator',this_cond)
+    if isfield('whisk_stimulator','this_cond')
         this_whisker_nr                 = this_cond.whisk_stimulator;
     else
         this_whisker_nr                 = this_cond.whisk_stim_nr;

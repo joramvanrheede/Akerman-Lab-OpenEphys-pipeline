@@ -1,4 +1,4 @@
-function timing_data = timing_plots(ephys_data, channels, resp_win, psth_bins, artifact_win)
+function timing_data = timing_results(ephys_data, channels, resp_win, psth_bins, artifact_win)
 % TIMING_DATA = timing_plots(EPHYS_DATA)
 % or
 % TIMING_DATA = timing_plots(EPHYS_DATA, CHANNELS, RESP_WIN, PSTH_BINS, ARTIFACT_WIN)
@@ -97,14 +97,6 @@ rate_kernel_size    = 0.01;
 opto_onsets             = [ephys_data.conditions(:).LED_onset];
 n_delta_ts              = length(opto_onsets);
 
-% Set up some figures
-raster_plot_h         	= figure;
-set(gcf,'Units','Normalized','Position',[.3 0 .4 1],'PaperPositionMode','auto')
-psth_h                  = figure;
-set(gcf,'Units','Normalized','Position',[.3 0 .4 1],'PaperPositionMode','auto')
-density_plot_h          = figure;
-set(gcf,'Units','Normalized','Position',[.3 0 .4 1],'PaperPositionMode','auto')
-
 counter                 = 0;
 for a = 1:length(ephys_data.conditions)
     
@@ -128,18 +120,24 @@ for a = 1:length(ephys_data.conditions)
     opto_power(counter)             = this_cond.LED_power;
     
     % Get spike data and remove artifact spikes
-    spikes                          = this_cond.spikes(channels, :, :) - this_t_whisk;
+    spikes                        	= this_cond.multiunit_spikes(channels, :, :);
+    opto_spikes                     = spikes - this_t_opto;
+    whisk_spikes                	= spikes - this_t_whisk;
     
-    q_artifact                      = spikes > artifact_win(1) & spikes < artifact_win(2);
-    spikes(q_artifact)              = NaN;
+    spont_spike_rates(:,1:n_trials(counter),counter)    = spike_rates_individual(spikes, resp_win);
+    opto_spike_rates(:,1:n_trials(counter),counter)     = spike_rates_individual(opto_spikes, resp_win);
+    whisk_spike_rates(:,1:n_trials(counter),counter)  	= spike_rates_individual(whisk_spikes, resp_win);
+%     
+    q_artifact                      = whisk_spikes > artifact_win(1) & whisk_spikes < artifact_win(2);
+    whisk_spikes(q_artifact)     	= NaN;
     
     % Binned spike rate
-    [spike_rates(:,counter)]        = spike_rate_by_trial(spikes, resp_win);
+    [spike_rates(1:n_trials(counter),counter)]        = spike_rate_by_trial(whisk_spikes, resp_win);
     mean_spike_rate(counter)        = mean(spike_rates(:,counter));
     serr_spike_rate(counter)        = serr(spike_rates(counter,:));
     
     % Peak spike rate and time
-    [peak_spike_rates(:,counter), peak_spike_times(:,counter)]  = peak_ROF_by_trial(spikes, resp_win, rate_kernel_size);
+    [peak_spike_rates(1:n_trials(counter),counter), peak_spike_times(1:n_trials(counter),counter)]  = peak_ROF_by_trial(whisk_spikes, resp_win, rate_kernel_size);
     
     mean_peak_spike_rate(counter)   = mean(peak_spike_rates(:,counter));
     serr_peak_spike_rate(counter)   = serr(peak_spike_rates(:,counter));
@@ -147,109 +145,41 @@ for a = 1:length(ephys_data.conditions)
     mean_peak_spike_time(counter)   = mean(peak_spike_times(:,counter));
     serr_peak_spike_time(counter)   = serr(peak_spike_times(:,counter));
     
-%     %% opto resp -- is this relevant?
-%     opto_spikes                  	= (spikes + this_t_whisk) - this_t_opto;
-%     opto_spike_rates                = spike_rate_by_trial(opto_spikes, opto_resp_win);
 
-    %% Figures
-    
-    % Raster plots
-    figure(raster_plot_h)
-    subplot(n_delta_ts,1,counter)
-    raster_plot(spikes,2);
-    xlim([min(psth_bins) max(psth_bins)])
-    title(['Opto-whisk delay = ' num2str(-delta_t(counter) * 1000) 'ms'])
-    ylabel('Trial nr')
-    set(gca,'FontName','Helvetica','FontWeight','Bold','box','off')
-    
-    % PSTH
-    figure(psth_h)
-    subplot(n_delta_ts,1,counter)
-    [plot_handle, all_psth_counts(:,counter), psth_bins]  = psth(spikes, psth_bins);
-    
-    q_whisk_time            = psth_bins > 0 & psth_bins < 0.1;
-    max_whisk_y(counter)    = max(all_psth_counts(q_whisk_time,counter));
+    [~, all_psth_counts(:,counter), psth_bins]  = psth(whisk_spikes, psth_bins, false);
 
-     % Set sensible axis and labels
-    title(['Opto-whisk delay = ' num2str(-delta_t(counter) * 1000) 'ms'])
-    ylabel('Spike count')
+    [~, density_rates(:,:,counter)]	= spike_density_plot(whisk_spikes,1, psth_bins, false);
     
-    set(gca,'FontName','Helvetica','FontWeight','Bold','box','off')
-    
-    % Spike density plot
-    figure(density_plot_h)
-    subplot(n_delta_ts,1,counter)
-    [image_handle, density_rates(:,:,counter)]     = spike_density_plot(spikes,1, psth_bins);
-    
-    set(gca,'FontName','Helvetica','FontWeight','Bold','box','off')
 end
 
-% set all y axes to equal
-figure(psth_h)
-subplot_equal_y(robust_max(max_whisk_y,30,'all') * 1.2);
-axes_hs = get(gcf,'Children');
-for i = 1:length(axes_hs)
-    axes(axes_hs(i))
-    shaded_region(resp_win,'g',0.4)
-end
 
-% Set color scaling to equal
-figure(density_plot_h)
-subplot_equal_clims
+%% Significance of response
+spont_spike_by_trial    = squeeze(mean(spont_spike_rates,1));
+spont_spike_std         = std(spont_spike_by_trial(:));
+spont_spike_mean        = mean(spont_spike_by_trial(:));
 
-%% Plots of spiking response metrics
+control_whisk_spikes	= squeeze(whisk_spike_rates(:,:,end));
+control_whisk_by_trial  = mean(control_whisk_spikes);
+mean_control_whisk      = mean(control_whisk_by_trial);
 
-q_below_0       	= delta_t <= 0; % Select only instances where the opto stimulus happened before the whisk
-figure
-set(gcf,'Units','Normalized','Position',[.1 .4 .8 .4],'PaperPositionMode','auto')
+mean_control_whisk_rate = mean_control_whisk - spont_spike_mean;
+mean_control_whisk_stds = mean_control_whisk_rate / spont_spike_std;
 
-% Binned spike rate
-subplot(1,3,1)
-%errorbar(delta_t(q_below_0),mean_spike_rate(q_below_0),serr_spike_rate(q_below_0),'k.-','LineWidth',2,'MarkerSize',20);
-point_plot(spike_rates(:,q_below_0),delta_t(q_below_0))
-xlimits     = xlim;
-line([xlimits],[mean_spike_rate(end) mean_spike_rate(end)],'Color',[1 0 0],'LineWidth',2,'LineStyle',':')
-xlim(xlimits)
-title('Binned spike rate')
-ylabel('Mean spike rate')
-xlabel('Opto-whisk time delay')
-fixplot
-yzero
+control_opto_spikes     = squeeze(opto_spike_rates(:,:,end));
+control_opto_by_trial   = mean(control_opto_spikes);
+mean_control_opto       = mean(control_opto_by_trial);
 
-% Peak spike rate
-subplot(1,3,2)
-%errorbar(delta_t(q_below_0),mean_peak_spike_rate(q_below_0),serr_peak_spike_rate(q_below_0),'k.-','LineWidth',2,'MarkerSize',20)
-point_plot(peak_spike_rates(:,q_below_0),delta_t(q_below_0))
-xlimits     = xlim;
-line([xlimits],[mean_peak_spike_rate(end) mean_peak_spike_rate(end)],'Color',[1 0 0],'LineWidth',2,'LineStyle',':')
-xlim(xlimits)
-title('Peak spike rate')
-ylabel('Peak spike rate')
-xlabel('Opto-whisk time delay')
-fixplot
-yzero
+mean_control_opto_rate  = mean_control_opto - spont_spike_mean;
+mean_control_opto_stds  = mean_control_opto_rate / spont_spike_std;
 
-% Peak spike time
-subplot(1,3,3)
-%errorbar(delta_t(q_below_0),mean_peak_spike_time(q_below_0),serr_peak_spike_time(q_below_0),'k.-','LineWidth',2,'MarkerSize',20)
-point_plot(peak_spike_times(:,q_below_0),delta_t(q_below_0))
-xlimits     = xlim;
-line([xlimits],[mean_peak_spike_time(end) mean_peak_spike_time(end)],'Color',[1 0 0],'LineWidth',2,'LineStyle',':')
-xlim(xlimits)
-title('Peak spike time')
-ylabel('Peak spike time')
-xlabel('Opto-whisk time delay')
-fixplot
-yzero
-
+[~,opto_response_p]    	= ttest2(spont_spike_by_trial(:),control_opto_by_trial(:));
+[~,whisk_response_p]  	= ttest2(spont_spike_by_trial(:),control_whisk_by_trial(:));
 
 %% Some stats on the firing rate differences compared to control
 
-[binned_rate_h binned_rate_p] = ttest2(spike_rates,repmat(spike_rates(:,end),1,length(delta_t)));
-
-[peak_rate_h peak_rate_p] = ttest2(peak_spike_rates,repmat(peak_spike_rates(:,end),1,length(delta_t)));
-
-[peak_time_h peak_time_p] = ttest2(peak_spike_times,repmat(peak_spike_times(:,end),1,length(delta_t)));
+[~, binned_rate_p]  = ttest2(spike_rates,repmat(spike_rates(:,end),1,length(delta_t)));
+[~, peak_rate_p]    = ttest2(peak_spike_rates,repmat(peak_spike_rates(:,end),1,length(delta_t)));
+[~, peak_time_p]    = ttest2(peak_spike_times,repmat(peak_spike_times(:,end),1,length(delta_t)));
 
 % Bonferroni correction for multiple comparisons; this should be on the conservative side
 bonf_binned_rate_p          = binned_rate_p * (length(delta_t)-1);
@@ -290,5 +220,13 @@ timing_data.serr_peak_spike_time    = serr_peak_spike_time;
 timing_data.peak_time_p             = peak_time_p;
 timing_data.bonf_peak_time_p        = bonf_peak_time_p;
 
+%% 
+timing_data.whisk_response_p        = whisk_response_p;
+timing_data.control_whisk_rate      = mean_control_whisk_rate;
+timing_data.control_whisk_stds      = mean_control_whisk_stds;
+
+timing_data.opto_response_p         = opto_response_p;
+timing_data.control_opto_rate       = mean_control_opto_rate;
+timing_data.control_opto_stds       = mean_control_opto_stds;
 
 

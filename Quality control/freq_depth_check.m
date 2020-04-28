@@ -1,9 +1,10 @@
-% 
+% check_whisk_resp_baseline
 
 % '/Volumes/Akermanlab/Joram/Preprocessed data/AVK RBSN rAAV M1/Frequency/2019_04_23/2019_04_23-1-Frequency.mat'
 
 %% File I/O settings
-data_file           = '/Volumes/Akermanlab/Joram/Preprocessed data/AVK POM/Frequency/2019_09_05/2019_09_05-12-Frequency.mat';
+data_file           = '/Volumes/Akermanlab/Joram/Preprocessed data/AVK RBSN rAAV S1/Frequency/2019_06_07/2019_06_07-1-Frequency.mat';
+q_reload            = 1; % Set to 0 once the data are loaded to save reloading time
 
 %% Visualisation settings
 bin_size            = [0.001]; % For PSTH

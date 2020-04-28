@@ -27,17 +27,17 @@ function plot_handle = plot_LFP_traces(LFP_traces,split_dim,LFP_timestamps,spaci
 
 
 % Set default dimension for splitting traces (and take average over the other)
-if nargin < 2 || isempty(split_dim)
+if nargin < 2
     split_dim   = 1;
 end
 
 % Set default 'time stamps' to x = 1:n_samples if not specified by user
-if nargin < 3 || isempty(LFP_timestamps)
+if nargin < 3
     LFP_timestamps = 1:length(LFP_traces);
 end
 
 % Set default spacing to 0 to plot the traces with mean overlaid
-if nargin < 4 || isempty(spacing)
+if nargin < 4
     spacing     = 0;
 end
 

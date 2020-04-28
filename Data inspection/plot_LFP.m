@@ -1,31 +1,31 @@
 % plot_LFP(chan_data)
 
 % where are the data files?
-data_folder     	= '/Volumes/Akermanlab/Joram/In_vivo_mouse_data/2018_04_19/ChR2-YFP-ON_2018-04-19_14-56-24_2';       % currently set to 'cd' so code should work if script is run from directory containing the data
+data_folder     	= '/Volumes/Akermanlab/Joram/In_vivo_mouse_data/2019_01_17/CBLK_2019-01-17_11-26-02_6';       % currently set to 'cd' so code should work if script is run from directory containing the data
 
-chan_nr             = 6;        % which channel? 1 = most superficial channel, then incrementing for deeper channels up to e.g. 16 or 32.
+chan_nr             = 1;        % which channel? 1 = most superficial channel, then incrementing for deeper channels up to e.g. 16 or 32.
 
 % Data resampling
-resample_freq    	= 10000;     % Resample trace to this frequency (in Hz)
+resample_freq    	= 1000;     % Resample trace to this frequency (in Hz)
 
 % Data filtering
-LFP_band_max        = 5000;      % LFP bandpass filter max
-LFP_band_min        = 500;       % LFP bandpass filter min
+LFP_band_max        = 300;      % LFP bandpass filter max
+LFP_band_min        = .5;       % LFP bandpass filter min
 
-do_50Hz_filt        = false;     % if true, notch filter for 50Hz noise
+do_50Hz_filt        = true;     % if true, notch filter for 50Hz noise
 
 % Time within recording to plot
-target_time         = 1034;     % Target time (in seconds) - sets the CENTRE of the time window displayed and zoomed in on
-zoom_out_time       = 60;     % Total amount of time to show in zoom out view (seconds)
+target_time         = 4500;     % Target time (in seconds) - sets the CENTRE of the time window displayed and zoomed in on
+zoom_out_time       = 1000;     % Total amount of time to show in zoom out view (seconds)
 
 % Zoom parameters
-mid_zoom_factor     = 10;        % zoom factor relative to zoomed out trace
-full_zoom_factor    = 8;        % zoom factor relative to mid zoom trace
+mid_zoom_factor     = 5;        % zoom factor relative to zoomed out trace
+full_zoom_factor    = 5;        % zoom factor relative to mid zoom trace
 
 % Which recording probe type?
-probe_type          = '16ch'; 	% '16ch' for 16 channel or '32ch' for 32 channel
+probe_type          = '32ch'; 	% '16ch' for 16 channel or '32ch' for 32 channel
 
-q_reload            = false;        % Re-load data or just re-plot with new parameters? Script will fail if 
+q_reload            = true;        % Re-load data or just re-plot with new parameters? Script will fail if 
 
 %% Parameters that probably won't change much
 
@@ -98,22 +98,19 @@ subplot(3,1,1)
 plot(time_vect(zoom_out_samples),LFP_trace_resampled(zoom_out_samples),'k-')
 xlabel('Time (s)')
 axis tight
-title(' ','FontSize',24)
-axis off
+title('In vivo dysrhythmia following local 4AP injection','FontSize',24)
 
 subplot(3,1,2)
 plot(time_vect(zoom_mid_samples),LFP_trace_resampled(zoom_mid_samples),'k-')
 xlabel('Time (s)')
 axis tight
-axis off
 
 subplot(3,1,3)
 plot(time_vect(zoom_in_samples),LFP_trace_resampled(zoom_in_samples),'k-')
 xlabel('Time (s)')
 axis tight
-axis off
 
 % Enlarge figure
 set(gcf,'Units','normal')
 set(gcf,'Position',[0 .1 1 .8])
-set(gcf,'Color',[1 1 1])
+

@@ -224,9 +224,7 @@ timing_data.spike_rate_p            = binned_rate_p;
 
 % Peak spike rates
 timing_data.peak_spike_rates        = peak_spike_rates;
-
-timing_data.delta_peak_spike_rate   = peak_spike_rates - peak_spike_rates(:,end);
-
+timing_data.delta_peak_spike_rate   = spike_rates - spike_rates(:,end);
 
 % Peak spike times
 timing_data.peak_spike_times        = peak_spike_times;

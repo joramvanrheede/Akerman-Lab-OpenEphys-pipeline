@@ -2,12 +2,12 @@
 clearvars
 close all
 
-data_dir        = '/Volumes/PS2Akermanlab/Joram/Data/Extracted opsin data/CHRONOS-ON';
+data_dir        = '/Volumes/Akermanlab/Joram/Cortex_20x100Hz_Plasticity';
 
 expt_folders    = dir(data_dir);
 
 
-channels        = [1:32];
+channels        = [15:26];
 
 
 % Response assessment windows
@@ -30,7 +30,7 @@ print_postfix  	= '100Hz_L5';
 % 8Hz vals: 75, 2400, 100
 % 100Hz vals: 30, 800, 75
 
-max_n_trials          	= 20; % limit to N trials
+max_n_trials          	= 30; % limit to N trials
 post_start_time        	= 800;
 tdiff                   = 75;
 

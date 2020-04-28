@@ -19,7 +19,7 @@ for a = 1:length(group_folders)
         for c = 1:length(experiments)
             
             expt_file_path  = fullfile(prep_dir,experiments(c).name);
-            disp(['Loading ' expt_file_path '...'])
+            disp(['Loading ' expt_file_path])
             
             groups(a).prep(b).expt_data(c)    = load(expt_file_path);
             for d = 1:length(groups(a).prep(b).expt_data(c).ephys_data.conditions)
@@ -29,28 +29,18 @@ for a = 1:length(group_folders)
                     
                     [CSD,w,sinks,sources,analysis_win] = Current_Source_Density(cond_data.LFP_trace(:,:,900:1200),[1 200]);
                     
+                    LFP_means       = squeeze(mean(cond_data.LFP_trace,2));
+                    LFP_min_profile = min(LFP_means(:,900:1200),[],2);
+                    LFP_min_profile = smooth(LFP_min_profile,5);
+                    LFP_min_chan  	= find(LFP_min_profile == min(LFP_min_profile));
+                    
                     sink_profile    = smooth(sinks,5);
                     max_sink_chan  	= find(sink_profile == min(sink_profile))+1;
-                    
-                    resp_win    = [1.01 1.05];
-                    chan_lims   = [4 16];
-                    smooth_win  = 3;
-                    
-                    [LFP_min_chan,min_profile,LFP_profile] = get_max_sink(cond_data.LFP_trace,[],resp_win,chan_lims,3);
-
-%                     % uncomment to debug / inspect LFP:
-%                     subplot(1,2,1)
-%                     imagesc(CSD)
-%                     subplot(1,2,2)
-%                     imagesc(LFP_profile(:,1000:1200))
-%                     LFP_min_chan
-%                     max_sink_chan
-%                     keyboard
                     
                     groups(a).prep(b).expt_data(c).ephys_data.sink_profile      = sink_profile;
                     groups(a).prep(b).expt_data(c).ephys_data.max_sink_chan     = max_sink_chan;
                     
-                    groups(a).prep(b).expt_data(c).ephys_data.LFP_min_profile 	= min_profile;
+                    groups(a).prep(b).expt_data(c).ephys_data.LFP_min_profile 	= LFP_min_profile;
                     groups(a).prep(b).expt_data(c).ephys_data.LFP_min_chan      = LFP_min_chan;
                 end
                 

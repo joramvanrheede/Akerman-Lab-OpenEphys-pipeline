@@ -1,18 +1,43 @@
 
+% check_whisk_resp_baseline
 
-data_file           = '/Volumes/Akermanlab/Joram/Preprocessed data/AVK POM/Laser_pulse/2019_09_16/2019_09_16-10-Laser_pulse.mat';
+% % 03/04
+% '/Volumes/Akermanlab/Joram/Preprocessed data/MJB laser power/Laser_power/CHRONOS-ON/2019_04_03/2019_04_03-17-Laser_power.mat' - YES, Post = REDUCED; 24%
+
+% % 04/04
+% '/Volumes/Akermanlab/Joram/Preprocessed data/MJB laser power/CHRONOS-ON/2019_04_04/2019_04_04-1-Laser_power.mat' - no - weird file, wrong led / whisk times
+% '/Volumes/Akermanlab/Joram/Preprocessed data/MJB laser power/Laser_power/CHRONOS-ON/2019_04_04/2019_04_04-2-Laser_power.mat' - YES, 813%
+% 
+% % 07/04
+% '/Volumes/Akermanlab/Joram/Preprocessed data/MJB laser power/Laser_power/CHRONOS-ON/2019_04_07/2019_04_07-1-Laser_power.mat' - YES
+
+
+
+% 03/05
+% '/Volumes/Akermanlab/Joram/Preprocessed data/MJB laser power/Laser_power/CHRONOS-OFF/2019_05_03/2019_05_03-3-Laser_power.mat' - YES
+% '/Volumes/Akermanlab/Joram/Preprocessed data/MJB laser power/Laser_power/CHRONOS-OFF/2019_05_03/2019_05_03-10-Laser_power.mat' - YES
+
+% 06/05 - 1
+% '/Volumes/Akermanlab/Joram/Preprocessed data/MJB laser power/Laser_power/CHRONOS-OFF/2019_05_06/2019_05_06-3-Laser_power.mat' - YES, most convincing profile...
+% '/Volumes/Akermanlab/Joram/Preprocessed data/MJB laser power/Laser_power/CHRONOS-OFF/2019_05_06/2019_05_06-9-Laser_power.mat' - nearly
+
+% 07/05 - 1
+% '/Volumes/Akermanlab/Joram/Preprocessed data/MJB laser power/Laser_power/CHRONOS-OFF/2019_05_07_1/2019_05_07-5-Laser_power.mat' - YES
+% '/Volumes/Akermanlab/Joram/Preprocessed data/MJB laser power/Laser_power/CHRONOS-OFF/2019_05_07_1/2019_05_07-11-Laser_power.mat' - nearly
+
+
+data_file           = '/Volumes/Akermanlab/Joram/Preprocessed data/MJB laser power/Laser_power/CHRONOS-ON/2019_04_03/2019_04_03-17-Laser_power.mat';
 q_reload            = 1;
 
 %% Visualisation settings
-psth_win            = [-.2 .4];
+psth_win            = [-.05 .1];
 bin_size            = [0.001];
 
-stim_type           = 'opto'; % 'whisk' or 'opto'
+stim_type           = 'whisk'; % 'whisk' or 'opto'
 
 %% Responsiveness settings
-spike_resp_win    	= [0.007 0.030]; % where to measure response (relative to stim onset)
+spike_resp_win    	= [0.005 0.08]; % where to measure response (relative to stim onset)
 spike_spont_win  	= [-1 -.1]; % where to measure spontaneous activity (relative to stim onset)
-artifact_win        = [-0.002 0.007];
 
 n_trials_for_drift  = 10; % number of trials on each side of recording to use for drift assessment
 
@@ -28,6 +53,9 @@ load(data_file);
 
 %% Unpack data
 
+spikes              = ephys_data.conditions(1).spikes(channels,:,:);
+LFPs                = ephys_data.conditions(1).LFP_trace;
+
 switch stim_type
     case 'whisk'
         stim_onset      = ephys_data.conditions(1).whisk_onset;
@@ -35,13 +63,8 @@ switch stim_type
         stim_onset      = ephys_data.conditions(1).LED_onset;
 end
 
-spikes              = ephys_data.conditions(1).spikes(channels,:,:);
 spikes              = spikes - stim_onset; % set whisk onset time to 0
-spikes(spikes > artifact_win(1) & spikes < artifact_win(2)) = NaN;
-
-LFPs                = ephys_data.conditions(1).LFP_trace;
 LFP_timestamps      = ([1:size(LFPs,3)]/LFP_res) - stim_onset;
-
 
 %% Visualisation
 
@@ -61,23 +84,15 @@ raster_plot(spikes,2)
 xlim(psth_win)
 fixplot
 
-
-
 subplot(1,5,4)
-[peak_rates, peak_times]  = peak_ROF_by_channel(spikes, spike_resp_win, 0.01);
-plot(peak_rates, 1:length(peak_rates))
-axis ij
-
-% plot_LFP_traces(LFPs,1,LFP_timestamps)
-% xlim(psth_win)
-% fixplot
+plot_LFP_traces(LFPs,1,LFP_timestamps)
+xlim(psth_win)
+fixplot
 
 subplot(1,5,5)
-plot(peak_times, 1:length(peak_times))
-axis ij
-% plot_LFP_traces(LFPs,1,LFP_timestamps,0.2,0.6)
-% xlim(psth_win)
-% fixplot
+plot_LFP_traces(LFPs,1,LFP_timestamps,0.2,0.6)
+xlim(psth_win)
+fixplot
 
 %% Responsiveness assessment
 

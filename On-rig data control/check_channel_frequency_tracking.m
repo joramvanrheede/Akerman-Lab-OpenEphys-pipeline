@@ -2,7 +2,7 @@
 
 %% File I/O settings
 expt_folder         = '/Volumes/Akermanlab/Joram/In_vivo_mouse_data/2019_04_02/RBSN_2019-04-02_15-25-26_14';
-q_reload            = 1; % Set to 0 once the data are loaded to save reloading time
+q_reload            = 0; % Set to 0 once the data are loaded to save reloading time
 
 %% Visualisation settings
 bin_size            = [0.001]; % For PSTH

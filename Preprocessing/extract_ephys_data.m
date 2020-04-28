@@ -69,6 +69,8 @@ else
     switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
 end
 
+
+
 adc_channel_nrs        	= [trial_input_nr stim_input_nr opto_input_nr switch_input_nr];
 adc_channel_thresholds 	= [trial_threshold stim_threshold opto_threshold switch_threshold];
 
@@ -144,7 +146,6 @@ for a = 1:4 % loop through the analog input channels
         endtime         = max(timestamps);              % find end time
         timestamps      = (1:length(thisTTL)) / 30000;  % manually create new timestamps at 30kHz, openephys sometimes suffers from timestamp wobble even though data acquisition is spot on
         timestamps      = timestamps + starttime;       % add start time to the newly created set of timestamps
-        
     end
     
     thisTTL_bool   	= thisTTL > adc_channel_thresholds(a); % find where the TTL signal is 'high'
@@ -174,6 +175,7 @@ for a = 1:4 % loop through the analog input channels
             
             % Determine stimulus amplitude from signal
             stim_amps       = NaN(size(start_inds));
+            
             for i = 1:length(start_inds)
                 stim_segment    = thisTTL(start_inds(i):end_inds(i));
                 if isempty(stim_segment)
@@ -186,6 +188,7 @@ for a = 1:4 % loop through the analog input channels
             opto_ends        = end_times(:);
             
             opto_powers      = NaN(size(start_inds));
+            
             for i = 1:length(start_inds)
                 stim_segment    = thisTTL(start_inds(i):end_inds(i));
                 if isempty(stim_segment)
@@ -247,11 +250,10 @@ trial_length    = round(median(trial_times),1);
 % of anomalies
 qtrial          = round(trial_times,1) == trial_length;
 
-% determine median trial length
-trial_times     = trial_ends - trial_starts;
-trial_length    = round(median(trial_times),1);
+trial_starts    = trial_starts(qtrial);
+trial_ends      = trial_ends(qtrial);
 
-total_length 	= round(median(diff(trial_starts)),1);
+total_length 	= round(median(diff(trial_starts)),3);
 trial_gap       = median(trial_starts(2:end)-trial_ends(1:end-1));
 
 %% At the end, simply chuck trials with no events in them?
@@ -262,18 +264,24 @@ if isempty(stim_starts)
     stim_amps   = [1 1];
 end
 
+
+%%
+
+allwhisks                   = stim_starts; % ?
+allwhisk_ends               = stim_ends;
+
 %% dealing with bursts of whisker stimuli
 
-first_stim_inds             = find(diff(stim_starts) > trial_gap)+1;
+first_stim_inds             = find(diff(allwhisks) > trial_gap)+1;
 
 if ~isempty(first_stim_inds)
     % Find which whisking onsets are the first of a trial, and which onsets
     % are the last of a trial
-    allwhisk_firstvect          = stim_starts(first_stim_inds);
-    allwhisk_lastvect           = stim_starts(first_stim_inds-1);% Stimulus amplitude
+    allwhisk_firstvect          = allwhisks(first_stim_inds);
+    allwhisk_lastvect           = allwhisks(first_stim_inds-1);% Stimulus amplitude
     
-    whisk_ends               	= stim_ends(first_stim_inds);
-    whisk_ends                	= [stim_ends(1); whisk_ends(:)];
+    whisk_ends               	= allwhisk_ends(first_stim_inds);
+    whisk_ends                	= [allwhisk_ends(1); whisk_ends(:)];
     
     stim_amps                   = stim_amps(first_stim_inds);
     stim_amps                   = [stim_amps(1); stim_amps(:)];
@@ -281,11 +289,11 @@ else
     allwhisk_firstvect          = [];
     allwhisk_lastvect           = [];
     
-    whisk_ends                  = stim_ends;
+    whisk_ends                  = allwhisk_ends;
 end
 
-whisk_starts            	= [stim_starts(1); allwhisk_firstvect(:)];
-whisk_lasts              	= [allwhisk_lastvect(:); stim_starts(end)];
+whisk_starts            	= [allwhisks(1); allwhisk_firstvect(:)];
+whisk_lasts              	= [allwhisk_lastvect(:); allwhisks(end)];
 
 % Stimulus length and repeat frequency
 whisk_lengths              	= whisk_ends - whisk_starts;
@@ -294,9 +302,9 @@ whisk_freqs              	= NaN(size(whisk_starts));
 for a = 1:length(whisk_starts)
     this_whisk_start    = whisk_starts(a);
     this_whisk_end      = whisk_lasts(a);
-    q_whisks            = stim_starts > this_whisk_start & stim_starts < this_whisk_end;
+    q_whisks            = allwhisks > this_whisk_start & allwhisks < this_whisk_end;
     
-    this_whisk_freq   	= mean(round(1./diff(stim_starts(q_whisks))));
+    this_whisk_freq   	= mean(round(1./diff(allwhisks(q_whisks))));
     if isempty(this_whisk_freq)
         this_whisk_freq = 99;
     elseif isnan(this_whisk_freq)
@@ -305,7 +313,7 @@ for a = 1:length(whisk_starts)
     whisk_freqs(a)      = this_whisk_freq;
 end
 
-stim_starts             	= whisk_starts;
+allwhisks             	= whisk_starts;
 
 %% Dealing with bursts of opto stimuli
 

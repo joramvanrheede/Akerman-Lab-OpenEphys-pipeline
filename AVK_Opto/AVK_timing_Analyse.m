@@ -1,4 +1,4 @@
-function timing_data = timing_plots(ephys_data, channels, resp_win, psth_bins, artifact_win)
+function timing_data = AVK_timing_Analyse(ephys_data, channels, resp_win, psth_bins, artifact_win)
 % TIMING_DATA = timing_plots(EPHYS_DATA)
 % or
 % TIMING_DATA = timing_plots(EPHYS_DATA, CHANNELS, RESP_WIN, PSTH_BINS, ARTIFACT_WIN)
@@ -73,7 +73,7 @@ end
 % Default to resp win from 6ms (after any artifacts) to 30ms (should capture
 % most of the direct stimulus-driven activity
 if nargin < 3 || isempty(resp_win)
-    resp_win        = [0.006 0.030];
+    resp_win        = [0.004 0.030];
 end
 
 % Default PSTH range; 300ms post stimulus should capture even long-tailed responses
@@ -84,28 +84,42 @@ end
 % Set any spikes during this window to NaN; -0.001 to 0.006 is where any piezo artifacts
 % may occur
 if nargin < 5
-    artifact_win    = [-0.001 0.006];
+    artifact_win    = [-0.001 0.004];
 end
 
 % Hardcoded for now:
 rate_kernel_size    = 0.01;
-% opto_resp_win       = [0.006 0.030];
-
+spont_resp_win = [-0.025 -0.005];
+LED_artifact_win = [-0.002 0.0025];
+Opto_sample_points = [-0.05 1];
+L5_Channels = [16:25];
+L23_Channels = [1:9];
 
 %% Code execution starts here
 
 opto_onsets             = [ephys_data.conditions(:).LED_onset];
+opto_length             = nanmedian([ephys_data.conditions(:).LED_duration]);
 n_delta_ts              = length(opto_onsets);
-
+opto_resp_win       = [opto_length+LED_artifact_win(2) 0.02];
+output_dir = ['D:\Timing\' ephys_data.data_folder '\' ephys_data.data_folder];
 % Set up some figures
 raster_plot_h         	= figure;
 set(gcf,'Units','Normalized','Position',[.3 0 .4 1],'PaperPositionMode','auto')
 psth_h                  = figure;
 set(gcf,'Units','Normalized','Position',[.3 0 .4 1],'PaperPositionMode','auto')
-density_plot_h          = figure;
+raster_L5_h         	= figure;
 set(gcf,'Units','Normalized','Position',[.3 0 .4 1],'PaperPositionMode','auto')
 
 counter                 = 0;
+spike_rates = NaN*ones(100,length(ephys_data.conditions));
+peak_spike_rates= NaN*ones(100,length(ephys_data.conditions));
+peak_spike_times = NaN*ones(100,length(ephys_data.conditions));
+opto_spike_rates = [];
+spont_rates = [];
+    
+
+
+
 for a = 1:length(ephys_data.conditions)
     
     % Fetch data for this condition
@@ -114,49 +128,76 @@ for a = 1:length(ephys_data.conditions)
     % Increment counter and find stimulus data for this condition
     counter                         = counter + 1;
     this_t_whisk                    = this_cond.whisk_onset;
-    this_t_opto                     = this_cond.LED_onset;
-
-    if isfield(this_cond,'whisk_stimulator')
-        this_whisker_nr                 = this_cond.whisk_stimulator;
-    else
-        this_whisker_nr                 = this_cond.whisk_stim_nr;
-    end
+    this_t_opto                     = round(this_cond.LED_onset,2);
+    this_whisker_nr                 = this_cond.whisk_stimulator;
     n_trials(counter)             	= this_cond.n_trials;
     
     delta_t(counter)                = this_t_opto - this_t_whisk;
+    LED_artifacts(1,:) = delta_t(counter)+LED_artifact_win;
+    LED_artifacts(2,:) = delta_t(counter)+LED_artifact_win+this_cond.LED_duration;
+    
     whisker_nr(counter)             = this_whisker_nr;
     opto_power(counter)             = this_cond.LED_power;
     
-    % Get spike data and remove artifact spikes
+      % Get spike data and remove artifact spikes
     spikes                          = this_cond.spikes(channels, :, :) - this_t_whisk;
     
     q_artifact                      = spikes > artifact_win(1) & spikes < artifact_win(2);
     spikes(q_artifact)              = NaN;
+    for k =1 : size(LED_artifacts,1)
+    q_artifact                      = spikes > LED_artifacts(k,1) & spikes < LED_artifacts(k,2);   
+    spikes(q_artifact)              = NaN;
+    end;    
     
+    %% Layer 5 opto response for experiment
+     opto_spikes                  	= (spikes(L5_Channels,:,:) + this_t_whisk) - this_t_opto;
+     Temp_Opto_Rates = spike_rate_by_trial(opto_spikes,opto_resp_win);%peak_ROF_by_trial(opto_spikes, opto_resp_win, rate_kernel_size);
+     Temp_Spont_Rates = spike_rate_by_trial(opto_spikes,spont_resp_win);
+        if delta_t(counter) < Opto_sample_points(1) || delta_t(counter) > Opto_sample_points(2) 
+        opto_spike_rates = [opto_spike_rates;Temp_Opto_Rates];
+        spont_rates = [spont_rates;Temp_Spont_Rates];
+        
+        figure(raster_L5_h)
+        subplot(n_delta_ts,1,counter)
+        raster_plot(opto_spikes,2);
+        xlim([min(psth_bins) max(psth_bins)])
+        title(['Opto-whisk delay = ' num2str(-delta_t(counter) * 1000) 'ms'])
+        ylabel('Trial nr')
+        set(gca,'FontName','Helvetica','FontWeight','Bold','box','off')
+        end;
+         clear Temp_Opto_Rates Temp_Spont_Rates;
+    
+    %% Layer 2_3 whisker modulation
+     
+
+   
     % Binned spike rate
-    [spike_rates(:,counter)]        = spike_rate_by_trial(spikes, resp_win);
-    mean_spike_rate(counter)        = mean(spike_rates(:,counter));
+     Temp_spikes = spike_rate_by_trial(spikes(L23_Channels,:,:), resp_win);
+    [spike_rates(1:numel(Temp_spikes),counter)]    = Temp_spikes;    
+       clear Temp_spikes;
+    
+    mean_spike_rate(counter)        = nanmean(spike_rates(:,counter));
     serr_spike_rate(counter)        = serr(spike_rates(counter,:));
     
     % Peak spike rate and time
-    [peak_spike_rates(:,counter), peak_spike_times(:,counter)]  = peak_ROF_by_trial(spikes, resp_win, rate_kernel_size);
-    
-    mean_peak_spike_rate(counter)   = mean(peak_spike_rates(:,counter));
+    [Temp_Peak_rates, Temp_Peak_times]  = peak_ROF_by_trial(spikes(L23_Channels,:,:), resp_win, rate_kernel_size);
+     peak_spike_rates(1:numel(Temp_Peak_rates),counter) =  Temp_Peak_rates;
+     peak_spike_times(1:numel(Temp_Peak_times),counter) =  Temp_Peak_times;
+     clear Temp_Peak_rates Temp_Peak_times;
+     
+    mean_peak_spike_rate(counter)   = nanmean(peak_spike_rates(:,counter));
     serr_peak_spike_rate(counter)   = serr(peak_spike_rates(:,counter));
     
-    mean_peak_spike_time(counter)   = mean(peak_spike_times(:,counter));
+    mean_peak_spike_time(counter)   = nanmean(peak_spike_times(:,counter));
     serr_peak_spike_time(counter)   = serr(peak_spike_times(:,counter));
     
-%     %% opto resp -- is this relevant?
-%     opto_spikes                  	= (spikes + this_t_whisk) - this_t_opto;
-%     opto_spike_rates                = spike_rate_by_trial(opto_spikes, opto_resp_win);
-
+     
     %% Figures
     
     % Raster plots
     figure(raster_plot_h)
     subplot(n_delta_ts,1,counter)
-    raster_plot(spikes,2);
+    raster_plot(spikes(L23_Channels,:,:),2);
     xlim([min(psth_bins) max(psth_bins)])
     title(['Opto-whisk delay = ' num2str(-delta_t(counter) * 1000) 'ms'])
     ylabel('Trial nr')
@@ -165,7 +206,7 @@ for a = 1:length(ephys_data.conditions)
     % PSTH
     figure(psth_h)
     subplot(n_delta_ts,1,counter)
-    [plot_handle, all_psth_counts(:,counter), psth_bins]  = psth(spikes, psth_bins);
+    [plot_handle, all_psth_counts(:,counter), psth_bins]  = psth(spikes(L23_Channels,:,:), psth_bins);
     
     q_whisk_time            = psth_bins > 0 & psth_bins < 0.1;
     max_whisk_y(counter)    = max(all_psth_counts(q_whisk_time,counter));
@@ -176,26 +217,8 @@ for a = 1:length(ephys_data.conditions)
     
     set(gca,'FontName','Helvetica','FontWeight','Bold','box','off')
     
-    % Spike density plot
-    figure(density_plot_h)
-    subplot(n_delta_ts,1,counter)
-    [image_handle, density_rates(:,:,counter)]     = spike_density_plot(spikes,1, psth_bins);
-    
-    set(gca,'FontName','Helvetica','FontWeight','Bold','box','off')
-end
+end;
 
-% set all y axes to equal
-figure(psth_h)
-subplot_equal_y(robust_max(max_whisk_y,30,'all') * 1.2);
-axes_hs = get(gcf,'Children');
-for i = 1:length(axes_hs)
-    axes(axes_hs(i))
-    shaded_region(resp_win,'g',0.4)
-end
-
-% Set color scaling to equal
-figure(density_plot_h)
-subplot_equal_clims
 
 %% Plots of spiking response metrics
 
@@ -251,6 +274,11 @@ yzero
 
 [peak_time_h peak_time_p] = ttest2(peak_spike_times,repmat(peak_spike_times(:,end),1,length(delta_t)));
 
+
+
+[Opto_L5_p Opto_L5_h] = ranksum(opto_spike_rates,spont_rates,'tail','right');
+
+
 % Bonferroni correction for multiple comparisons; this should be on the conservative side
 bonf_binned_rate_p          = binned_rate_p * (length(delta_t)-1);
 bonf_peak_rate_p            = peak_rate_p * (length(delta_t)-1);
@@ -269,8 +297,11 @@ timing_data.bin_size                = mean(diff(psth_bins));
 
 timing_data.delta_t                 = delta_t;
 
-timing_data.all_psth_counts         = all_psth_counts;
-timing_data.density_rates           = density_rates;
+timing_data.L5_Opto                 = opto_spike_rates;
+timing_data.L5_Spont                 = spont_rates;
+timing_data.opto_resp_h = Opto_L5_h;
+timing_data.opto_resp_p = Opto_L5_p;
+timing_data.Mean_L5_Opto_delta = nanmean(timing_data.L5_Opto)-nanmean(timing_data.L5_Spont);
 
 timing_data.binned_spike_rate       = spike_rates;
 timing_data.mean_binned_spike_rate  = mean_spike_rate;
@@ -290,5 +321,48 @@ timing_data.serr_peak_spike_time    = serr_peak_spike_time;
 timing_data.peak_time_p             = peak_time_p;
 timing_data.bonf_peak_time_p        = bonf_peak_time_p;
 
+hc = figure;
+set(gcf,'Units','Normalized','Position',[.1 .4 .8 .4],'PaperPositionMode','auto')
+
+% Binned spike rate
+subplot(1,2,1)
+%errorbar(delta_t(q_below_0),mean_spike_rate(q_below_0),serr_spike_rate(q_below_0),'k.-','LineWidth',2,'MarkerSize',20);
+point_plot(timing_data.L5_Opto)
+xlimits     = xlim;
+title(['L5 Opto Binned spike rate p =' num2str(Opto_L5_p)])
+ylabel('Binned spike rate')
+fixplot
+yzero
+
+subplot(1,2,2)
+%errorbar(delta_t(q_below_0),mean_spike_rate(q_below_0),serr_spike_rate(q_below_0),'k.-','LineWidth',2,'MarkerSize',20);
+point_plot(timing_data.L5_Spont)
+xlimits     = xlim;
+title('L5 Binned Spont rate')
+ylabel('Binned spike rate')
+fixplot
+yzero
 
 
+%% saving
+
+if ~exist([output_dir], 'dir')
+       mkdir([output_dir])
+end
+
+
+disp(['Saving figures to...' output_dir]);
+disp('Raster..');
+saveas(raster_plot_h,[output_dir '_raster.fig']);
+saveas(raster_plot_h,[output_dir '_raster.png']);
+disp('PSTH...');
+saveas(psth_h,[output_dir '_PSTH.fig']);
+saveas(psth_h,[output_dir '_PSTH.png']);
+disp('Layer 5');
+saveas(raster_L5_h,[output_dir '_L5_Raster.fig']);
+saveas(raster_L5_h,[output_dir '_L5_Raster.png']);
+disp('Layer 5');
+saveas(hc,[output_dir '_L5_Stats.fig']);
+saveas(hc,[output_dir '_L5_Stats.png']);
+disp('Saved');
+end

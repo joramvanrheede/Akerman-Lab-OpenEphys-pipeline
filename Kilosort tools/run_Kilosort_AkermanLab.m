@@ -100,7 +100,7 @@ end
 
 protocol_folders        = dir([data_folder]);
 protocol_folders        = {protocol_folders.name};
-protocol_folders(ismember(protocol_folders,{'.' '..' '.DS_Store' '._.DS_Store'}))     = []; % get rid of '.' and '..'
+protocol_folders(ismember(protocol_folders,{'.' '..' '.DS_Store'}))     = []; % get rid of '.' and '..'
 
 % find the part of the file name where the protocol nr is mentioned (it is the number at the end, after the underscore)
 rec_number_start_ind    = cell2mat(regexp(protocol_folders,repmat({'\d+$'},size(protocol_folders))));
@@ -109,6 +109,7 @@ rec_number_end_ind      = cell2mat(regexp(protocol_folders,repmat({'\d$'},size(p
 protocol_nrs            = NaN(size(protocol_folders));
 for a = 1:length(protocol_folders)
     this_folder         = protocol_folders{a};
+    
     protocol_nrs(a)     = str2num(this_folder(rec_number_start_ind(a):rec_number_end_ind(a)));
 end
 
