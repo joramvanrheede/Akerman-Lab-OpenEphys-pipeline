@@ -3,14 +3,17 @@ function units = Prep_Unit_Analysis(ephys_data,resp_win);
 
 % whisk response threshold
 whisk_resp_p_thresh = 0.2;
+opto_resp_p_thresh = 0.05;
 whisk_resp_rate_thresh = 10;
-L5_chans = ephys_data.max_sink_chan+4:ephys_data.max_sink_chan+16; % mid layer 4+100um : mid layer 4 + 400um assumes layer width of +/- 300um for layer 5;
+opto_resp_rate_thresh = 10;
+
+L5_chans = ephys_data.LFP_min_chan+4:ephys_data.LFP_min_chan+16; % mid layer 4+100um : mid layer 4 + 400um assumes layer width of +/- 300um for layer 5;
 L5_chans(L5_chans>32) = [];
 L5_chans = int16(L5_chans);
 
 for j = 1 : size(ephys_data.conditions(end).unit_spikes,1) % for all units
     units(j).unit_depth = ephys_data.unit_depths(j); 
-    units(j).L4_depth = ephys_data.max_sink_chan*25;
+    units(j).L4_depth = ephys_data.LFP_min_chan*25;
 
     for k = 1 : numel(ephys_data.conditions) % for each condition
         whisk_onset = ephys_data.conditions(k).whisk_onset; % gets whisk onset for condition
@@ -49,12 +52,11 @@ for j = 1 : size(ephys_data.conditions(end).unit_spikes,1) % for all units
         units(j).conditions(k).norm_whisk_prob = units(j).conditions(k).whisk_behaviour.spike_prob;
         units(j).conditions(k).norm_whisk_1st_spike = nanmean(units(j).conditions(k).whisk_behaviour.first_spikes_by_trial);
         units(j).conditions(k).whisk_1st_spike_jitter = (nanstd(units(j).conditions(k).whisk_behaviour.first_spikes_by_trial))^2;
-        
     end;
     for k = 1 : numel(ephys_data.conditions) % for each condition
     units(j).conditions(k).delta_whisk_rate = units(j).conditions(k).norm_whisk_rate/units(j).conditions(end).norm_whisk_rate;
-    units(j).conditions(k).trial_delta_whisk_rate = units(j).conditions(k).whisk_behaviour.trial_spike_rate-units(j).conditions(end).whisk_behaviour.trial_spike_rate;
-    [units(j).conditions(k).trial_rate_p,units(j).conditions(k).trial_rate_h] = ranksum(units(j).conditions(k).whisk_behaviour.trial_spike_rate,units(j).conditions(end).whisk_behaviour.trial_spike_rate);
+   % units(j).conditions(k).trial_delta_whisk_rate = units(j).conditions(k).whisk_behaviour.trial_spike_rate-units(j).conditions(end).whisk_behaviour.trial_spike_rate;
+    %[units(j).conditions(k).trial_rate_p,units(j).conditions(k).trial_rate_h] = ranksum(units(j).conditions(k).whisk_behaviour.trial_spike_rate,units(j).conditions(end).whisk_behaviour.trial_spike_rate);
     
     units(j).conditions(k).prob_delta = units(j).conditions(k).norm_whisk_prob - units(j).conditions(end).norm_whisk_prob;
    % test for change in probability of spiking vs control
@@ -73,11 +75,22 @@ for j = 1 : size(ephys_data.conditions(end).unit_spikes,1) % for all units
     spont_prob = int16(units(j).conditions(end).spont_behaviour.spike_prob*n_trials);
     clear x;
     x = table([whisk_prob;n_trials-whisk_prob],[spont_prob;n_trials-spont_prob]);
-    [whisk_resp_h,whisk_resp_p] = fishertest(x);
+    [whisk_resp_h,whisk_resp_p] = fishertest(x,'Tail','right');
+    
+    %Opto_responsiveness test for increase in probability of spiking
+    n_trials = size(units(j).conditions(end).opto_behaviour.raster,1);
+    opto_prob = int16(units(j).conditions(end).opto_behaviour.spike_prob*n_trials);
+    clear x;
+    x = table([opto_prob;n_trials-opto_prob],[spont_prob;n_trials-spont_prob]);
+    [opto_resp_h,opto_resp_p] = fishertest(x,'Tail','right');
+    
     
     whisk_resp_rate = units(j).conditions(end).whisk_behaviour.Mean_spike_rate;
+    opto_resp_rate = units(j).conditions(end).opto_behaviour.Mean_spike_rate;
+    
     
     units(j).whisk_responsive = (whisk_resp_p <= whisk_resp_p_thresh) & (whisk_resp_rate >= whisk_resp_rate_thresh);
+    units(j).Opto_responsive = (opto_resp_p < opto_resp_p_thresh) & (opto_resp_rate >= opto_resp_rate_thresh);
     units(j).whisk_resp_p = whisk_resp_p;
     units(j).whisk_resp_rate = whisk_resp_rate;
     units(j).combined_response = [units(j).conditions(2).norm_trial_whisk_rate units(j).conditions(3).norm_trial_whisk_rate units(j).conditions(4).norm_trial_whisk_rate units(j).conditions(5).norm_trial_whisk_rate] ;
