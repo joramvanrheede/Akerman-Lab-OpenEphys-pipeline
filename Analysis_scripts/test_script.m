@@ -7,7 +7,7 @@ clear spont_corr_local spont_corr_l5 opto_corr_l5 opto_corr_local opto_corr_unit
 
 all_times(1:2,1:7,1:200) = NaN;
 sig_times(1:2,1:7,1:200) = NaN;
-corr_bins = (3:18)     
+corr_bins = (10:20)     
 b =1;
 
 diff(1:2,1:200) = NaN;
