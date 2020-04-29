@@ -8,13 +8,13 @@ sorted_folder       = '/Users/Joram/Data/Sorting/Synced_individual';
 multiunit_folder    = '/Users/Joram/Data/Preprocessed';
 
 % The names of the group folders (also used in plotting as group names)
-group_folders     	= {'POM'}; %
+group_folders     	= {'POM' 'M1' 'S1'}; %
 
 % Name of target experiment title folder
 expt_folder_name  	= 'Timing';
 
 % Reload and re-merge the single and multiunit data?
-q_reload            = 0; % Reload all data?
+q_reload            = 1; % Reload all data?
 
 %% Inclusion settings and criteria
 target_opto_rate  	= 60;   % Target opto response in Hz % 60? 100?
@@ -196,7 +196,7 @@ for a = 1:length(merged_groups)
         
         disp(['Using data from ' ephys_data.data_folder])
         
-        L4_sink_microns  	= ephys_data.max_sink_chan * 25;
+        L4_sink_microns  	= ephys_data.LFP_min_chan * 25
 
         delta_t             = [ephys_data.conditions.LED_onset] - [ephys_data.conditions.whisk_onset];
         delta_t             = round(delta_t,3); % round to nearest ms
