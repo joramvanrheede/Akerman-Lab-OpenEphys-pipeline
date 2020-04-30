@@ -8,13 +8,13 @@ sorted_folder       = '/Users/Joram/Data/Sorting/Synced_individual';
 multiunit_folder    = '/Users/Joram/Data/Preprocessed';
 
 % The names of the group folders (also used in plotting as group names)
-group_folders     	= {'POM' 'M1'}; %
+group_folders     	= {'POM' 'M1' 'S1'}; %
 
 % Name of target experiment title folder
 expt_folder_name  	= 'Timing';
 
 % Reload and re-merge the single and multiunit data?
-q_reload            = false; % Reload all data?
+q_reload            = true; % Reload all data?
 
 %% Inclusion settings and criteria
 target_opto_rate  	= 60;   % Target opto response in Hz % 60? 100?
@@ -218,6 +218,7 @@ for a = 1:length(merged_groups)
         
         n_dts                               = size(timing_unit_data.spike_rate,2);
         max_dts                             = max(size(timing_unit_data.spike_rate,2),size(group_data(a).spike_rate,2));
+        max_dts                             = 12;
         
         %% pre-allocate to max with NaNs
         group_data(a).spike_rate(unit_inds,1:max_dts)           = NaN;
