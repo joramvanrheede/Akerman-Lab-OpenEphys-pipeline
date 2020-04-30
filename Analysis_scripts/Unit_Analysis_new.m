@@ -8,7 +8,7 @@ if reload == 1
     clear all
 load_folder = 'F:\Synced\Synced_individual'
 group_folders     	= {'POM';'Cortical'}; 
-target_opto = '60'
+target_opto = '1000'
 reload =1;
 end;
 
