@@ -17,7 +17,7 @@ function quick_plot_unit(unit,stim_type);
       end;
       
       if (stim_type == 'grid') | (stim_type == 'both')
-        figure('Name','Unit response'); %left bottom width height
+        figure('Name',['Unit depth :' num2str(unit.unit_depth)]); %left bottom width height
         set(gcf,'Units','normalized','Position',[0.05 .1 .9 .9]);
              bin_no = 20; 
              x = 0.005:0.005:bin_no*0.005;
