@@ -54,9 +54,10 @@ for a = 1:length(group_folders)
                     groups(a).prep(b).expt_data(c).ephys_data.LFP_min_chan      = LFP_min_chan;
                 end
                 
-                groups(a).prep(b).expt_data(c).ephys_data.conditions    = rmfield(groups(a).prep(b).expt_data(c).ephys_data.conditions, 'LFP_trace');
                 
             end
+            groups(a).prep(b).expt_data(c).ephys_data.conditions    = rmfield(groups(a).prep(b).expt_data(c).ephys_data.conditions, 'LFP_trace');
+                
             toc
         end
     end
