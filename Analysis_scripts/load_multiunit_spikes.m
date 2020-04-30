@@ -58,6 +58,8 @@ for a = 1:length(group_folders)
                 
                 
             end
+            groups(a).prep(b).expt_data(c).ephys_data.conditions    = rmfield(groups(a).prep(b).expt_data(c).ephys_data.conditions, 'LFP_trace');
+                
             toc
         end
     end

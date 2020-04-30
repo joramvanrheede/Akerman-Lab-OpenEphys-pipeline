@@ -58,7 +58,33 @@ for a = 1:length(expt_folders)
         load(fullfile(fullfolder, this_expt_name));
         
         % Use timing_function to extract summary data about this timing experiment
-        timing_data(a).experiment(b)    = timing_function(ephys_data, resp_win, psth_bins);
-
+        timing_info     = timing_function(ephys_data, resp_win, psth_bins);
+        
+        LFPs            = ephys_data.conditions(end).LFP_trace;
+        LFP_times       = [1:length(LFPs)] / 1000 - ephys_data.conditions(end).whisk_onset; % relative to whisker onset at 1s
+        LFP_resp_win    = [0.01 0.05]; % 10ms and 50ms
+        chan_lims       = [4 16];
+        smooth_win      = 3;
+        max_LFP_sink    = get_max_sink(ephys_data.conditions(1).LFP_trace,LFP_times,LFP_resp_win,chan_lims,smooth_win)
+        
+        timing_info.L4_sink = max_LFP_sink;
+        
+        %%
+        L5_chans        = max_LFP_sink + 3:12;
+        L23_chans       = 1:max_LFP_sink - 2;
+        
+        timing_multi_data 	= timing_results(ephys_data,L5_chans);
+        
+        
+        timing_info.opto_rate    = timing_multi_data.control_opto_rate;
+        timing_info.opto_stds    = timing_multi_data.control_opto_stds;
+        timing_info.opto_p       = timing_multi_data.opto_response_p;
+        timing_info.opto_power   = ephys_data.conditions(end).LED_power;
+        timing_info.L5_chans     = L5_chans;
+        timing_info.L23_chans    = L23_chans;
+        
+        %%
+        
+        timing_data(a).experiment(b)  = timing_info;
     end
 end

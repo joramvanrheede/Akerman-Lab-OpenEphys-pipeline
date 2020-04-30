@@ -18,7 +18,7 @@ function point_plot(in_data, in_groups,x_vals)
 % 
 
 
-marker_alpha    = [0.3];
+marker_alpha    = [0.5];
 
 if ~isvector(in_data)
     if exist('in_groups','var')
@@ -43,13 +43,13 @@ else
 end
 
 % How wide are mean and standard error line?
-mean_width      = 0.5 * median(diff(x_vals));
-serr_width      = 0.25 * median(diff(x_vals));
+mean_width      = 0.2 * median(diff(x_vals));
+serr_width      = 0.1 * median(diff(x_vals));
 
 for a = 1:length(group_nrs)
     data_in_group   = in_data(in_groups == group_nrs(a)); % Select data for this group
     
-    this_x          = x_vals(a);
+    this_x          = x_vals(group_nrs(a));
     
     scatter(repmat(this_x,1,length(data_in_group)),data_in_group,50,'o','filled','MarkerFaceColor',[1 0 0],'MarkerEdgeAlpha',marker_alpha,'MarkerFaceAlpha', marker_alpha);
     hold on
