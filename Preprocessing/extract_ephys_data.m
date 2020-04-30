@@ -126,15 +126,15 @@ for a = 1:4 % loop through the analog input channels
                 adc_channel_thresholds(a) = 0.5;
             end
             
-                        % Uncomment For debugging
-                        figure
-                        plot(thisTTL(1:100:end),'k-','LineWidth',2)
-                        hold on
-                        plot(corr_TTL(1:100:end),'b-')
-                        plot(resamp_smooth_TTL_min(1:100:end),'c-')
-                        plot([0 length(thisTTL)/100], [adc_channel_thresholds(a) adc_channel_thresholds(a)],'r-')
-                        keyboard
-                        % end debugging code
+%                         % Uncomment For debugging
+%                         figure
+%                         plot(thisTTL(1:100:end),'k-','LineWidth',2)
+%                         hold on
+%                         plot(corr_TTL(1:100:end),'b-')
+%                         plot(resamp_smooth_TTL_min(1:100:end),'c-')
+%                         plot([0 length(thisTTL)/100], [adc_channel_thresholds(a) adc_channel_thresholds(a)],'r-')
+%                         keyboard
+%                         % end debugging code
             
             % Apply moving minimum correction
             thisTTL         = corr_TTL;
