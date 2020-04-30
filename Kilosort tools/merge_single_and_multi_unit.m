@@ -137,11 +137,11 @@ switch do_continue
         error('Aborted by user after mismatch found')
     case 'Yes'
         merged_data     = multi_unit_data;
-        merged_data.spikes = [];
         for a = 1:length(merged_data.conditions)
             merged_data.conditions(a).multiunit_spikes  = merged_data.conditions(a).spikes;
             merged_data.conditions(a).unit_spikes            = single_unit_data.conditions(a).spikes;
         end
+        merged_data.conditions = rmfield(merged_data.conditions,'spikes');
         
         merged_data.unit_depths  = single_unit_data.unit_depths;
 end
