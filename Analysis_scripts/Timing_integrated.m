@@ -8,13 +8,13 @@ sorted_folder       = 'F:\Synced\Synced_individual';
 multiunit_folder    = 'F:\Multi_unit Coalated';
 
 % The names of the group folders (also used in plotting as group names)
-group_folders     	= {'POM'}; %
+group_folders     	= {'POM' 'M1'}; %
 
 % Name of target experiment title folder
 expt_folder_name  	= 'Timing';
 
 % Reload and re-merge the single and multiunit data?
-q_reload            = 1; % Reload all data?
+q_reload            = false; % Reload all data?
 
 %% Inclusion settings and criteria
 target_opto_rate  	= 60;   % Target opto response in Hz % 60? 100?
@@ -29,6 +29,12 @@ whisk_resp_p_thresh = 1;  % p-value threshold for increase in spike probability 
 
 L5_chans            = 5:12; % Layer 5 channels relative to the L4 sink (sink channel + [L5_chans])
 
+% To do:
+% Produce mean +/- serr line across units
+% Consider normalised delta spike rate
+% Consider normalising to max response / to max delta t
+% Get response to control opto only - first opto resp
+% Normalise data --> just use raw rates and subtract
 
 %% Reload all the data if required
 if q_reload
@@ -192,10 +198,10 @@ for a = 1:length(merged_groups)
         
         disp(['Using data from ' ephys_data.data_folder])
         
-        L4_sink_microns  	= ephys_data.max_sink_chan * 25;
+        L4_sink_microns  	= ephys_data.LFP_min_chan * 25
 
         delta_t             = [ephys_data.conditions.LED_onset] - [ephys_data.conditions.whisk_onset];
-        delta_t             = round(delta_t,3); % round to nearest ms
+        delta_t             = round(delta_t,3) % round to nearest ms
 
         timing_unit_data                    = timing_by_unit(ephys_data);
         
@@ -314,6 +320,8 @@ for a = 1:length(merged_groups)
     q_depth             = unit_depths <= max_depth & unit_depths >= min_depth;
     
     delta_t             = group_data(a).delta_t;
+    uniq_delta_ts    	= unique(delta_t(:));
+    uniq_delta_ts       = uniq_delta_ts(~isnan(uniq_delta_ts));
     
     %% Spike probability
     
@@ -390,10 +398,21 @@ for a = 1:length(merged_groups)
     end
     
     %%
+    spike_prob_means    = NaN(size(uniq_delta_ts));
+    for i = 1:length(uniq_delta_ts)
+        this_delta_t            = uniq_delta_ts(i);
+        q_delta_t               = delta_t == this_delta_t;
+        spike_prob_means(i)  	= nanmean(delta_spike_prob(q_delta_t & q_all'));
+    end
+    
+    %%
     figure(1)
     subplot(1,length(merged_groups),a)
     plot(delta_t(q_all,:)',delta_spike_prob(q_all,:)','Color',[0 0 0 .2])
     hold on
+    
+    plot(uniq_delta_ts,spike_prob_means,'Color',[1 0 0],'LineWidth',4)
+    
     title([group_folders{a} ', n = ' num2str(sum(q_all)) ' units'])
     plot(delta_t(q_all,:),sig_delta_spike_prob(q_all,:),'k.','MarkerSize',25)
     xlim([-0.120 0.01])
@@ -418,10 +437,22 @@ for a = 1:length(merged_groups)
     spike_rate_up       = delta_spike_rate >= 0;
     
     %%
+    spike_rate_means   = NaN(size(uniq_delta_ts));
+    for i = 1:length(uniq_delta_ts)
+        this_delta_t            = uniq_delta_ts(i);
+        q_delta_t               = delta_t == this_delta_t;
+        spike_rate_means(i)  	= nanmean(delta_spike_rate(q_delta_t & q_all'));
+    end
+    
+    
+    %%
     figure(2)
     subplot(1,length(merged_groups),a)
     plot(delta_t(q_all,:)',delta_spike_rate(q_all,:)','Color',[0 0 0 .2])
     hold on
+    
+    plot(uniq_delta_ts,spike_rate_means,'Color',[1 0 0],'LineWidth',4)
+    
     title([group_folders{a} ', n = ' num2str(sum(q_all)) ' units'])
     plot(delta_t(q_all,:),sig_delta_spike_rate(q_all,:),'k.','MarkerSize',25)
     xlim([-0.120 0.01])
@@ -445,11 +476,23 @@ for a = 1:length(merged_groups)
     
     first_spike_time_up             = delta_first_spike_time >= 0;
     
+        
+    first_spike_means   = NaN(size(uniq_delta_ts));
+    for i = 1:length(uniq_delta_ts)
+        this_delta_t            = uniq_delta_ts(i);
+        q_delta_t               = delta_t == this_delta_t;
+        first_spike_means(i)  	= nanmean(delta_first_spike_time(q_delta_t & q_all'));
+    end
+    
+    
     %%
     figure(3)
     subplot(1,length(merged_groups),a)
     plot(delta_t(q_all,:)',delta_first_spike_time(q_all,:)','Color',[0 0 0 .2])
     hold on
+    
+    plot(uniq_delta_ts,first_spike_means,'Color',[1 0 0],'LineWidth',4)
+    
     title([group_folders{a} ', n = ' num2str(sum(q_all)) ' units'])
     plot(delta_t(q_all,:),sig_delta_first_spike_time(q_all,:),'k.','MarkerSize',25)
     xlim([-0.120 0.01])
@@ -464,10 +507,20 @@ for a = 1:length(merged_groups)
     peak_spike_rate_ctrl    = group_data(a).peak_spike_rate_ctrl(:);
     delta_peak_rate         = peak_spike_rate - peak_spike_rate_ctrl;
     
+    peak_rate_means         = NaN(size(uniq_delta_ts));
+    for i = 1:length(uniq_delta_ts)
+        this_delta_t            = uniq_delta_ts(i);
+        q_delta_t               = delta_t == this_delta_t;
+        peak_rate_means(i)      = nanmean(delta_peak_rate(q_delta_t & q_all'));
+    end
+    
     figure(4)
     subplot(1,length(merged_groups),a)
     plot(delta_t(q_all,:)',delta_peak_rate(q_all,:)','Color',[0 0 0 .5])
     hold on
+    
+    plot(uniq_delta_ts,peak_rate_means,'Color',[1 0 0],'LineWidth',4)
+    
     title([group_folders{a} ', n = ' num2str(sum(q_all)) ' units'])
     xlim([-0.120 0.01])
     plot(xlim,[0 0],':','Color',[1 0 0],'LineWidth',2)
@@ -480,11 +533,24 @@ for a = 1:length(merged_groups)
     first_spike_jitter         = group_data(a).first_spike_jitter;
     first_spike_jitter_ctrl    = group_data(a).first_spike_jitter_ctrl(:);
     delta_spike_jitter        	= first_spike_jitter - first_spike_jitter_ctrl;
+
+    %%
+    
+    spike_jitter_means      = NaN(size(uniq_delta_ts));
+    for i = 1:length(uniq_delta_ts)
+        this_delta_t            = uniq_delta_ts(i);
+        q_delta_t               = delta_t == this_delta_t;
+        spike_jitter_means(i) 	= nanmean(delta_spike_jitter(q_delta_t & q_all'));
+    end
+    %%
     
     figure(5)
     subplot(1,length(merged_groups),a)
     plot(delta_t(q_all,:)',delta_spike_jitter(q_all,:)','Color',[0 0 0 .5])
     hold on
+    
+    plot(uniq_delta_ts,spike_jitter_means,'Color',[1 0 0],'LineWidth',4)
+    
     title([group_folders{a} ', n = ' num2str(sum(q_all)) ' units'])
     xlim([-0.120 0.01])
     plot(xlim,[0 0],':','Color',[1 0 0],'LineWidth',2)

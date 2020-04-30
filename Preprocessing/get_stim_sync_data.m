@@ -100,12 +100,12 @@ min_whisk_buffer        = 2;
 if switch_input_nr ~= 0
     trial_threshold     = 0.25; % For trial, signal goes up to 2.5V or less
     stim_threshold      = 2.7; % For whisking (always during trial), signal goes up to 2.75 - 5V
-    opto_threshold    	= 0.0425; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
+    opto_threshold    	= 0.075; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
     switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
 else
     trial_threshold     = 0.25; % normal TTL logic - 0 to 5V
     stim_threshold      = 2.5; % normal TTL logic - 0 to 5V
-    opto_threshold    	= 0.0425; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
+    opto_threshold    	= 0.075; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
     switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
 end
 

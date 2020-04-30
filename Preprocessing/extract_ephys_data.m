@@ -60,12 +60,12 @@ filefolder              = filefolders{fileind}; % this is the folder we're after
 if switch_input_nr ~= 0
     trial_threshold     = 0.25; % For trial, signal goes up to 2.5V or less
     stim_threshold      = 2.7; % For whisking (always during trial), signal goes up to 2.75 - 5V
-    opto_threshold    	= 0.0425; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
+    opto_threshold    	= 0.075; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
     switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
 else
     trial_threshold     = 0.25; % normal TTL logic - 0 to 5V
     stim_threshold      = 2.5; % normal TTL logic - 0 to 5V
-    opto_threshold    	= 0.0425; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
+    opto_threshold    	= 0.075; % LED is no longer TTL, voltage varies with power (with 5V representing max); 0.05V thresh will detect events above ~1% max power
     switch_threshold    = 2.5; % normal TTL logic - 0 to 5V
 end
 
@@ -126,15 +126,15 @@ for a = 1:4 % loop through the analog input channels
                 adc_channel_thresholds(a) = 0.5;
             end
             
-            %             % Uncomment For debugging
-            %             figure
-            %             plot(thisTTL(1:100:end),'k-','LineWidth',2)
-            %             hold on
-            %             plot(corr_TTL(1:100:end),'b-')
-            %             plot(resamp_smooth_TTL_min(1:100:end),'c-')
-            %             plot([0 length(thisTTL)/100], [adc_channel_thresholds(a) adc_channel_thresholds(a)],'r-')
-            %             keyboard
-            %             % end debugging code
+%                         % Uncomment For debugging
+%                         figure
+%                         plot(thisTTL(1:100:end),'k-','LineWidth',2)
+%                         hold on
+%                         plot(corr_TTL(1:100:end),'b-')
+%                         plot(resamp_smooth_TTL_min(1:100:end),'c-')
+%                         plot([0 length(thisTTL)/100], [adc_channel_thresholds(a) adc_channel_thresholds(a)],'r-')
+%                         keyboard
+%                         % end debugging code
             
             % Apply moving minimum correction
             thisTTL         = corr_TTL;
