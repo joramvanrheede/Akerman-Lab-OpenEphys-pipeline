@@ -18,7 +18,7 @@ q_reload            = false; % Reload all data?
 
 %% Inclusion settings and criteria
 target_opto_rate  	= 60;   % Target opto response in Hz % 60? 100?
-opto_p_threshold    = 0.1; % p value for opto response to include
+opto_p_threshold    = 0.05; % p value for opto response to include
 min_opto_rate       = 10;  	% minimal opto response rate
 
 % Max and min depth for units to include
@@ -28,6 +28,8 @@ min_depth           = -400; % Depth relative to L4 sink (negative numbers = towa
 whisk_resp_p_thresh = 1;  % p-value threshold for increase in spike probability to whisk stimulus
 
 L5_chans            = 5:12; % Layer 5 channels relative to the L4 sink (sink channel + [L5_chans])
+
+opto_win            = [0.010 0.03];
 
 % To do:
 % Produce mean +/- serr line across units
@@ -178,12 +180,12 @@ for a = 1:length(merged_groups)
             these_L5_chans      = ephys_data.LFP_min_chan + L5_chans;
             these_L5_chans(these_L5_chans>32) = [];
             
-            timing_multi_data 	= timing_results(ephys_data,these_L5_chans);
+            timing_multi_data 	= timing_results(ephys_data,these_L5_chans,opto_win);
             
                
             opto_rate(c)    = timing_multi_data.control_opto_rate;
             opto_stds(c)    = timing_multi_data.control_opto_stds;
-            opto_p(c)       = timing_multi_data.opto_response_p;
+            opto_p(c)       = timing_multi_data.opto_response_p
             opto_power(c)   = ephys_data.conditions(1).LED_power;
             
         end
@@ -367,7 +369,7 @@ for a = 1:length(merged_groups)
     %% Spike rate
     spike_rate          = group_data(a).spike_rate;
     spike_rate_ctrl     = group_data(a).spike_rate_ctrl;
-    delta_spike_rate    = spike_rate ./ spike_rate_ctrl(:);
+    delta_spike_rate    = spike_rate - spike_rate_ctrl(:);
     
     spike_rate_p        = group_data(a).spike_rate_p;
     
