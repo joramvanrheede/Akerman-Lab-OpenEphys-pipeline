@@ -8,13 +8,13 @@ sorted_folder       = 'F:\Synced\Synced_individual';
 multiunit_folder    = 'F:\Multi_unit Coalated';
 
 % The names of the group folders (also used in plotting as group names)
-group_folders     	= {'POM' 'M1'}; %
+group_folders     	= {'POM'}; %
 
 % Name of target experiment title folder
 expt_folder_name  	= 'Timing';
 
 % Reload and re-merge the single and multiunit data?
-q_reload            = false; % Reload all data?
+q_reload            = 0; % Reload all data?
 
 %% Inclusion settings and criteria
 target_opto_rate  	= 60;   % Target opto response in Hz % 60? 100?
@@ -115,9 +115,10 @@ if q_reload
     
     clear multi_groups
     % clear sorted_groups
-end
+end % end of load loop
 
 
+selected_exps = merged_groups;
 
 for a = 1:length(merged_groups)
     group_data(a).unit_depths               = [];
@@ -206,7 +207,7 @@ for a = 1:length(merged_groups)
         timing_unit_data                    = timing_by_unit(ephys_data);
         
         close all
-        n_units                             = size(ephys_data.conditions(1).spikes,1);
+        n_units                             = size(ephys_data.conditions(1).unit_spikes,1);
         next_unit                           = n_units + 1;
         
         unit_inds                           = cum_n_units + [1:n_units];
@@ -256,15 +257,15 @@ for a = 1:length(merged_groups)
         
         group_data(a).peak_spike_rate(unit_inds,1:n_dts)  	= timing_unit_data.peak_spike_rates;
         group_data(a).peak_spike_rate_ctrl(unit_inds)       = timing_unit_data.peak_spike_rates(:,end);
-        
-        group_data(a).unit_depths(unit_inds)              	= (800 - ephys_data.unit_depths) - L4_sink_microns;
+        temp =                                              (800 - ephys_data.unit_depths) - L4_sink_microns;
+        group_data(a).unit_depths(unit_inds)              	=  temp;
         group_data(a).delta_t(unit_inds,1:n_dts)          	= repmat(delta_t,n_units,1);
         group_data(a).select_opto(unit_inds)             	= select_opto;
         
         group_data(a).spike_resp_prob_p(unit_inds)        	= timing_unit_data.spike_resp_prob_p;
         group_data(a).whisk_resp_stds(unit_inds)            = timing_unit_data.whisk_resp_stds;
         
-    end
+    end % end of looping through all preps
     
     
     [group_data(a).unit_depths, depth_sort_inds]    = sort(group_data(a).unit_depths);
@@ -292,7 +293,7 @@ for a = 1:length(merged_groups)
     group_data(a).spike_resp_prob_p              	= group_data(a).spike_resp_prob_p(depth_sort_inds);
   	group_data(a).whisk_resp_stds               	= group_data(a).whisk_resp_stds(depth_sort_inds);
         
-
+    n_trials                                         = size(group_data(a).spike_rate_by_trial_whisk,2);
     group_data(a).spike_rate_by_trial_whisk          =group_data(a).spike_rate_by_trial_whisk(depth_sort_inds,1:n_trials,1:n_dts);
     group_data(a).spike_rate_by_trial_spont          = group_data(a).spike_rate_by_trial_spont(depth_sort_inds,1:n_trials,1:n_dts);
     group_data(a).spike_rate_by_trial_opto           = group_data(a).spike_rate_by_trial_opto(depth_sort_inds,1:n_trials,1:n_dts);
@@ -300,7 +301,7 @@ for a = 1:length(merged_groups)
 end % end for each group;
 
 disp('Saving selected experiments for group...');
-save_fn = [sorted_folder '\' group_folders{1} '_selected_exps_' num2str(target_opto_rate) '.mat']
+%save_fn = [sorted_folder '\' group_folders{1} '_selected_exps_' num2str(target_opto_rate) '.mat']
 save(save_fn,'selected_exps','-v7.3');
 disp('saved');
 
@@ -352,50 +353,7 @@ for a = 1:length(merged_groups)
     L23_Opto_all = [];
     
     
-    c = unique(group_data(a).exp_index);
-    for k = 1 : numel(c);
-        index = group_data(a).exp_index ==c(k);
-       % exps(k).L5_whisk_rates = group_data(a).spike_rate_by_trial_whisk(index & q_L5,:,end);
-        exps(k).L23_whisk_rates = group_data(a).spike_rate_by_trial_whisk(index & q_all,:,end);
-        
-        %exps(k).L5_spont_rates = group_data(a).spike_rate_by_trial_spont(index & q_L5,:,end);
-        exps(k).L23_spont_rates = group_data(a).spike_rate_by_trial_spont(index & q_all,:,end);
-        
-        %exps(k).L5_opto_rates = group_data(a).spike_rate_by_trial_opto(index & q_L5,:,end);
-        exps(k).L23_opto_rates = group_data(a).spike_rate_by_trial_opto(index & q_all,:,end);
-        
-        %exps(k).L5_whisk_total = [];
-        exps(k).L23_whisk_total = [];
-        
-        %exps(k).L5_spont_total = [];
-        exps(k).L23_spont_total = [];
-        
-       % exps(k).L5_opto_total = [];
-        exps(k).L23_opto_total = [];
-        
     
-        %   exps(k).L5_whisk_delta = exps(k).L5_whisk_total- exps(k).L5_spont_total;
-        exps(k).L23_whisk_delta = exps(k).L23_whisk_total- exps(k).L23_spont_total;
-        
-       % exps(k).L5_opto_delta = exps(k).L5_opto_total- exps(k).L5_spont_total;
-        exps(k).L23_opto_delta = exps(k).L23_opto_total- exps(k).L23_spont_total;
-        
-        
-        %L5_Whisk_all = [L5_Whisk_all exps(k).L5_whisk_delta];
-        L23_Whisk_all = [L23_Whisk_all exps(k).L23_whisk_delta];
-        
-       % L5_Spont_all = [L5_Spont_all exps(k).L5_spont_total];
-        L23_Spont_all = [L23_Spont_all exps(k).L23_spont_total];
-        
-        %L5_Opto_all = [L5_Opto_all exps(k).L5_opto_delta];
-        L23_Opto_all = [L23_Opto_all exps(k).L23_opto_delta];
-          
-    end;
-    
-    
-    if sum(q_all) == 0
-        continue
-    end
     
     %%
     spike_prob_means    = NaN(size(uniq_delta_ts));
