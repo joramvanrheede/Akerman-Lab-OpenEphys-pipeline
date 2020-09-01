@@ -8,6 +8,7 @@ function [sorted_ephys_data] = sync_Kilosort_spikes(Kilosort_dir)
 
 %% Constant - unlikely to change unless we change acquisition system
 samplerate      = 30000;
+data_file_name  = 'concatenated_data_CAR.dat';
 
 %% Load Kilosorted data using CortexLab/spikes functions:
 
@@ -23,6 +24,22 @@ cluster_groups  = sp.cgs;   % Group corresponding to each cluster_number, 1 * N 
 % We need spikeDepths, a N spikes * 1 vector, to determine the depth of the clusters
 [spikeAmps, spikeDepths, templateDepths, tempAmps, tempsUnW, templateDuration, waveforms] = templatePositionsAmplitudes(sp.temps, sp.winv, sp.ycoords, sp.spikeTemplates, sp.tempScalingAmps);
 
+%% Extract mean spike waveforms here
+
+gwfparams.dataDir           = Kilosort_dir;    % KiloSort/Phy output folder
+gwfparams.fileName          = data_file_name;         % .dat file containing the raw 
+gwfparams.dataType          = 'int16';            % Data type of .dat file (this should be BP filtered)
+gwfparams.nCh               = 32;                      % Number of channels that were streamed to disk in .dat file
+gwfparams.wfWin             = [-60 61];              % Number of samples before and after spiketime to include in waveform
+gwfparams.nWf               = 500;                    % Number of waveforms per unit to pull out
+gwfparams.spikeTimes        = ceil(sp.st * 30000); %ceil(sp.st(sp.clu==0)*30000); % Vector of cluster spike times (in samples) same length as .spikeClusters
+gwfparams.spikeClusters     = sp.clu; %sp.clu(sp.clu==0);
+
+waveform_data               = getWaveForms(gwfparams);
+
+mean_unit_waveforms         = waveform_data.waveFormsMean;
+
+
 %% Select 
 
 % Get depth of cluster by identifying the unique cluster / depth pairs
@@ -34,9 +51,13 @@ is_unit         = cluster_groups == 2;
 % get cluster numbers and depths for confirmed 'Good' units only
 unit_clusters   = cluster_numbers(is_unit);
 unit_depths     = cluster_depths(is_unit,2);
+unit_waveforms  = mean_unit_waveforms(is_unit,:,:);
 
 % Sort by depth, from superficial to deep (this will be the order in which units are added to the sorted_ephys_data struct)
 [sort_depths, depth_order]  = sort(unit_depths);
+
+% Sort unit waveforms according to the depth order
+unit_waveforms              = unit_waveforms(depth_order,:,:); 
 
 % Make boolean to select only spikes that came from confirmed 'Good' units
 is_unit_spike   = ismember(cluster_ids,unit_clusters);
@@ -166,7 +187,10 @@ for a = 1:length(sorted_ephys_data)
     end
     
     % Add unit depth information
-    sorted_ephys_data(a).unit_depths = sort_depths;
+    sorted_ephys_data(a).unit_depths        = sort_depths;
+    
+    % Add waveform information too
+    sorted_ephys_data(a).unit_waveforms     = unit_waveforms;
 end
 
 
